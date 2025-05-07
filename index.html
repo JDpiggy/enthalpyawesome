@@ -2,35 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Kingdom Forge</title>
+  <title>Kingdom Forge TD</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header><h1>Kingdom Forge</h1></header>
-  <main>
-    <section id="resources">
-      <p>Wood: <span id="wood">100</span></p>
-      <p>Stone: <span id="stone">100</span></p>
-      <p>Food: <span id="food">100</span></p>
-      <p>Gold: <span id="gold">100</span></p>
-    </section>
+  <h1>Kingdom Forge: Tower Defense</h1>
+  <canvas id="gameCanvas" width="640" height="480"></canvas>
 
-    <section id="buildings">
-      <h2>Buildings</h2>
-      <button onclick="upgradeBuilding('farm')">Upgrade Farm</button>
-      <button onclick="upgradeBuilding('barracks')">Upgrade Barracks</button>
-    </section>
+  <div id="controls">
+    <p>Gold: <span id="gold">100</span></p>
+    <button onclick="placeTower()">Place Tower (50g)</button>
+    <button onclick="upgradeTower()">Upgrade Tower (100g)</button>
+  </div>
 
-    <section id="army">
-      <h2>Army</h2>
-      <button onclick="trainUnit('swordsman')">Train Swordsman</button>
-    </section>
-
-    <section id="events">
-      <h2>Random Events</h2>
-      <button onclick="triggerEvent()">Trigger Event</button>
-    </section>
-  </main>
   <script src="game.js"></script>
 </body>
 </html>
