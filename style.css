@@ -1,14 +1,14 @@
-/* Reset body and html to ensure full-screen experience */
-body, html {
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  background: black;
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  padding: 20px;
 }
-
-/* Ensure the canvas takes up the entire screen */
-canvas {
-  display: block;
-  width: 100vw;
-  height: 100vh;
+header {
+  text-align: center;
+}
+main section {
+  margin: 20px 0;
+}
+button {
+  margin-right: 10px;
 }
