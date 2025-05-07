@@ -30,10 +30,8 @@ function drawMap() {
     const offsetX = (canvas.width - grassImg.width) / 2;
     const offsetY = (canvas.height - grassImg.height) / 2;
 
-    // Option 1: Draw full image scaled to fit canvas
-    ctx.drawImage(grassImg, 0, 0, canvas.width, canvas.height);
 
-    // Option 2: Draw part of the full background image (for scrolling/zoom effects)
+  // Option 2: Draw part of the full background image (for scrolling/zoom effects)
     // ctx.drawImage(grassImg, 0, 0, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
   }
 }
