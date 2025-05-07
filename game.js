@@ -1,49 +1,93 @@
-let resources = {
-  wood: 100,
-  stone: 100,
-  food: 100,
-  gold: 100
-};
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
 
-function updateUI() {
-  for (let key in resources) {
-    document.getElementById(key).textContent = resources[key];
+let gold = 100;
+let towers = [];
+let enemies = [];
+
+const TILE_SIZE = 32;
+let frame = 0;
+
+// Load sample tower/enemy images
+const towerImg = new Image();
+towerImg.src = 'assets/towers/tower1.png';
+
+const enemyImg = new Image();
+enemyImg.src = 'assets/enemies/enemy1.png';
+
+function drawMap() {
+  ctx.fillStyle = "#3b3b3b";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function spawnEnemy() {
+  enemies.push({ x: 0, y: 160, hp: 100, speed: 1 });
+}
+
+function updateEnemies() {
+  for (const enemy of enemies) {
+    enemy.x += enemy.speed;
+    if (enemy.x > canvas.width) {
+      // Reached end, lose life (optional)
+      enemy.hp = 0;
+    }
+  }
+  enemies = enemies.filter(e => e.hp > 0);
+}
+
+function drawEnemies() {
+  for (const enemy of enemies) {
+    ctx.drawImage(enemyImg, enemy.x, enemy.y, TILE_SIZE, TILE_SIZE);
   }
 }
 
-function upgradeBuilding(type) {
-  if (resources.wood >= 50 && resources.stone >= 50) {
-    resources.wood -= 50;
-    resources.stone -= 50;
-    resources.gold += 20;
-    alert(`${type} upgraded!`);
-  } else {
-    alert("Not enough resources!");
+function drawTowers() {
+  for (const tower of towers) {
+    ctx.drawImage(towerImg, tower.x, tower.y, TILE_SIZE, TILE_SIZE);
   }
-  updateUI();
 }
 
-function trainUnit(type) {
-  if (resources.food >= 30 && resources.gold >= 20) {
-    resources.food -= 30;
-    resources.gold -= 20;
-    alert(`${type} trained!`);
-  } else {
-    alert("Not enough resources!");
+function attackEnemies() {
+  for (const tower of towers) {
+    for (const enemy of enemies) {
+      const dx = enemy.x - tower.x;
+      const dy = enemy.y - tower.y;
+      if (Math.sqrt(dx * dx + dy * dy) < 100) {
+        enemy.hp -= tower.damage;
+        if (enemy.hp <= 0) gold += 10;
+      }
+    }
   }
-  updateUI();
+  document.getElementById("gold").textContent = gold;
 }
 
-function triggerEvent() {
-  const events = ["A plague reduces food!", "Raiders steal wood!", "You found gold!", "New settlers arrive!"];
-  const choice = events[Math.floor(Math.random() * events.length)];
-  alert(choice);
-  // Simple example of impact
-  if (choice.includes("food")) resources.food -= 20;
-  if (choice.includes("wood")) resources.wood -= 20;
-  if (choice.includes("gold")) resources.gold += 50;
-  if (choice.includes("settlers")) resources.food += 30;
-  updateUI();
+function placeTower() {
+  if (gold >= 50) {
+    towers.push({ x: 200, y: 200, damage: 10 });
+    gold -= 50;
+    document.getElementById("gold").textContent = gold;
+  }
 }
 
-updateUI();
+function upgradeTower() {
+  if (gold >= 100 && towers.length > 0) {
+    towers[0].damage += 10;
+    gold -= 100;
+    document.getElementById("gold").textContent = gold;
+  }
+}
+
+function gameLoop() {
+  drawMap();
+  drawTowers();
+  drawEnemies();
+  updateEnemies();
+  attackEnemies();
+
+  frame++;
+  if (frame % 120 === 0) spawnEnemy();
+
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
