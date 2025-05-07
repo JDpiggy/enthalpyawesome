@@ -1,7 +1,16 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+
+// Load the large background
 const grassImg = new Image();
 grassImg.src = 'assets/tiles/grass.png';
+
+// Game assets
+const towerImg = new Image();
+towerImg.src = 'assets/towers/tower1.png';
+
+const enemyImg = new Image();
+enemyImg.src = 'assets/enemies/enemy1.png';
 
 let gold = 100;
 let towers = [];
@@ -10,18 +19,22 @@ let enemies = [];
 const TILE_SIZE = 32;
 let frame = 0;
 
-// Load sample tower/enemy images
-const towerImg = new Image();
-towerImg.src = 'assets/towers/tower1.png';
+// Set canvas size to match visible game area
+canvas.width = 800;
+canvas.height = 600;
 
-const enemyImg = new Image();
-enemyImg.src = 'assets/enemies/enemy1.png';
-
+// Background draw (centered)
 function drawMap() {
-  for (let y = 0; y < canvas.height; y += 1960) {
-    for (let x = 0; x < canvas.width; x += 5863) {
-      ctx.drawImage(grassImg, x, y, 5863, 1960);
-    }
+  if (grassImg.complete) {
+    // Calculate position to center the background image
+    const offsetX = (canvas.width - grassImg.width) / 2;
+    const offsetY = (canvas.height - grassImg.height) / 2;
+
+    // Option 1: Draw full image scaled to fit canvas
+    ctx.drawImage(grassImg, 0, 0, canvas.width, canvas.height);
+
+    // Option 2: Draw part of the full background image (for scrolling/zoom effects)
+    // ctx.drawImage(grassImg, 0, 0, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
   }
 }
 
@@ -32,10 +45,7 @@ function spawnEnemy() {
 function updateEnemies() {
   for (const enemy of enemies) {
     enemy.x += enemy.speed;
-    if (enemy.x > canvas.width) {
-      // Reached end, lose life (optional)
-      enemy.hp = 0;
-    }
+    if (enemy.x > canvas.width) enemy.hp = 0;
   }
   enemies = enemies.filter(e => e.hp > 0);
 }
@@ -95,4 +105,6 @@ function gameLoop() {
   requestAnimationFrame(gameLoop);
 }
 
-gameLoop();
+grassImg.onload = () => {
+  gameLoop();
+};
