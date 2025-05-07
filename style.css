@@ -1,14 +1,16 @@
 body {
-  font-family: Arial, sans-serif;
-  background-color: #f4f4f4;
-  padding: 20px;
-}
-header {
+  background: #222;
+  color: #eee;
+  font-family: monospace;
   text-align: center;
 }
-main section {
-  margin: 20px 0;
+
+#controls {
+  margin-top: 20px;
 }
-button {
-  margin-right: 10px;
+
+canvas {
+  border: 4px solid #888;
+  image-rendering: pixelated;
+  background-color: #111;
 }
