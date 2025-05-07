@@ -1,13 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>First-Person Tower Defense Game</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <title>Kingdom Forge</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <canvas id="gameCanvas"></canvas>
-  <script type="module" src="main.js"></script>
+  <header><h1>Kingdom Forge</h1></header>
+  <main>
+    <section id="resources">
+      <p>Wood: <span id="wood">100</span></p>
+      <p>Stone: <span id="stone">100</span></p>
+      <p>Food: <span id="food">100</span></p>
+      <p>Gold: <span id="gold">100</span></p>
+    </section>
+
+    <section id="buildings">
+      <h2>Buildings</h2>
+      <button onclick="upgradeBuilding('farm')">Upgrade Farm</button>
+      <button onclick="upgradeBuilding('barracks')">Upgrade Barracks</button>
+    </section>
+
+    <section id="army">
+      <h2>Army</h2>
+      <button onclick="trainUnit('swordsman')">Train Swordsman</button>
+    </section>
+
+    <section id="events">
+      <h2>Random Events</h2>
+      <button onclick="triggerEvent()">Trigger Event</button>
+    </section>
+  </main>
+  <script src="game.js"></script>
 </body>
 </html>
