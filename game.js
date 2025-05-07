@@ -18,8 +18,11 @@ const enemyImg = new Image();
 enemyImg.src = 'assets/enemies/enemy1.png';
 
 function drawMap() {
-  ctx.fillStyle = "#3b3b3b";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  for (let y = 0; y < canvas.height; y += TILE_SIZE) {
+    for (let x = 0; x < canvas.width; x += TILE_SIZE) {
+      ctx.drawImage(grassImg, x, y, TILE_SIZE, TILE_SIZE);
+    }
+  }
 }
 
 function spawnEnemy() {
