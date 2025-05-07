@@ -18,9 +18,9 @@ const enemyImg = new Image();
 enemyImg.src = 'assets/enemies/enemy1.png';
 
 function drawMap() {
-  for (let y = 0; y < canvas.height; y += TILE_SIZE) {
-    for (let x = 0; x < canvas.width; x += TILE_SIZE) {
-      ctx.drawImage(grassImg, x, y, TILE_SIZE, TILE_SIZE);
+  for (let y = 0; y < canvas.height; y += 1960) {
+    for (let x = 0; x < canvas.width; x += 5863) {
+      ctx.drawImage(grassImg, x, y, 5863, 1960);
     }
   }
 }
