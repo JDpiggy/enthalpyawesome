@@ -315,14 +315,43 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ctx) drawGameObjects(); // Draw background/static elements if any
     }
 
+
     function startGame() {
-        gameState = 'PLAYING'; startScreen.style.display = 'none';
+        gameState = 'PLAYING';
+        startScreen.style.display = 'none';
+        gameOverScreen.style.display = 'none'; // <<< ADD THIS LINE TO HIDE GAME OVER SCREEN
+
         // Reset key game state variables for a fresh start
-        if(rocket) rocket.fuel = MAX_FUEL; else rocket = new Rocket();
-        pipes = []; powerUps = []; particles = []; score = 0; frame = 0;
+        if(rocket) {
+            // If rocket exists, reset its position and velocity too
+            rocket.y = GAME_HEIGHT / 2 - ROCKET_HEIGHT / 2;
+            rocket.velocityY = 0;
+            rocket.fuel = MAX_FUEL;
+            rocket.shieldActive = false; // Ensure shield is off
+            rocket.shieldTimer = 0;
+        } else {
+            rocket = new Rocket(); // Create new rocket if it doesn't exist (first game)
+        }
+
+        pipes = [];
+        powerUps = [];
+        particles = [];
+        score = 0;
+        frame = 0;
         gameSpeed = PIPE_SPEED_INITIAL;
+
         updateUI(); // Update UI to reflect reset score/fuel
         gameLoop();
+    }
+
+// ... (all your existing code after startGame, until the event listeners) ...
+
+    // Event Listeners
+    startButton.addEventListener('click', startGame);
+    restartButton.addEventListener('click', startGame); // This is fine, as startGame now hides the gameOverScreen
+
+    window.addEventListener('keydown', handleInput);
+// ... (rest of your event listeners and initGame call) ...
     }
 
     function gameOver() {
