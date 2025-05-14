@@ -1,24 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Bangers&family=Roboto:wght@400;700&display=swap');
+
 body {
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background-color: #333;
+    background-color: #2c3e50;
     margin: 0;
-    font-family: 'Arial', sans-serif;
+    font-family: 'Roboto', sans-serif; /* Default to Roboto */
     color: white;
-    overflow: hidden; /* Prevents scrollbars if canvas is slightly off */
+    overflow: hidden;
 }
 
 .game-container {
     position: relative;
-    border: 2px solid #555;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    border: 3px solid #34495e;
+    box-shadow: 0 0 25px rgba(0,0,0,0.6);
+    border-radius: 5px;
 }
 
 canvas {
     display: block;
-    background-color: #70c5ce; /* Sky blue */
+    background-color: #87CEEB;
 }
 
 #ui-overlay {
@@ -30,43 +33,45 @@ canvas {
     display: flex;
     flex-direction: column;
     align-items: center;
-    pointer-events: none; /* Allow canvas interaction */
+    pointer-events: none;
 }
 
 #score, #highScore {
     position: absolute;
-    font-size: 24px;
-    padding: 10px;
-    text-shadow: 1px 1px 2px black;
+    font-size: 32px; /* << Slightly Increased font size */
+    padding: 15px 20px; /* Adjusted padding */
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    font-family: 'Bangers', cursive; /* Title font for scores */
+    letter-spacing: 1px;
 }
 
 #score {
-    top: 10px;
-    left: 10px;
+    top: 20px;
+    left: 20px;
 }
 
 #highScore {
-    top: 10px;
-    right: 10px;
+    top: 20px;
+    right: 20px;
 }
 
 #fuelBarContainer {
     position: absolute;
-    bottom: 10px;
-    left: 10px;
-    font-size: 18px;
-    background-color: rgba(0,0,0,0.3);
-    padding: 5px;
-    border-radius: 5px;
+    bottom: 20px; /* Adjusted for new layout */
+    left: 20px;
+    font-size: 22px; /* << Increased font size */
+    background-color: rgba(0,0,0,0.4);
+    padding: 10px 15px;
+    border-radius: 8px;
 }
 
 #fuelBar {
-    width: 100px;
-    height: 15px;
-    background-color: orange;
-    border: 1px solid #333;
-    border-radius: 3px;
-    margin-top: 3px;
+    width: 200px; /* << Increased width */
+    height: 22px; /* << Increased height */
+    background-color: #f39c12;
+    border: 1px solid #1a1a1a;
+    border-radius: 5px;
+    margin-top: 5px;
     transition: width 0.2s ease-out;
 }
 
@@ -76,52 +81,82 @@ canvas {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: rgba(0, 0, 0, 0.7);
-    padding: 30px;
-    border-radius: 10px;
+    background-color: rgba(44, 62, 80, 0.9); /* Slightly more opaque */
+    padding: 40px 50px; /* Adjusted padding */
+    border-radius: 15px;
     text-align: center;
-    pointer-events: all; /* Enable interaction for buttons */
-    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    pointer-events: all;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+    min-width: 450px; /* Adjusted min-width */
+    max-width: 60%;   /* Capped max-width for very wide screens */
 }
 
 #startScreen h1, #gameOverScreen h2 {
     margin-top: 0;
-    color: #ffc107; /* Amber */
+    margin-bottom: 30px;
+    color: #e67e22;
+    font-size: 72px; /* << INCREASED font size for titles */
+    font-family: 'Bangers', cursive; /* Title font */
+    letter-spacing: 2px;
+    line-height: 1.1;
+    text-shadow: 3px 3px 0px rgba(0,0,0,0.2); /* Added a slight 3D effect */
 }
 
 #startScreen p, #gameOverScreen p {
-    margin-bottom: 20px;
+    margin-bottom: 25px;
+    font-size: 20px; /* << Increased font size */
+    line-height: 1.6;
 }
 
 #startScreen button, #gameOverScreen button, #toggleSoundButton {
-    padding: 10px 20px;
-    font-size: 16px;
-    background-color: #4CAF50;
+    padding: 16px 32px; /* << Increased padding */
+    font-size: 20px;    /* << Increased font size */
+    background-color: #2ecc71;
     color: white;
     border: none;
-    border-radius: 5px;
+    border-radius: 8px;
     cursor: pointer;
-    margin: 5px;
-    transition: background-color 0.3s ease;
+    margin: 10px 5px;
+    transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
     pointer-events: all;
+    text-transform: uppercase;
+    font-weight: bold;
+    letter-spacing: 1px;
+    box-shadow: 0 3px 7px rgba(0,0,0,0.25);
+    font-family: 'Roboto', sans-serif; /* Explicitly Roboto for buttons */
 }
+
 #toggleSoundButton {
     position: absolute;
-    bottom: 10px;
-    right: 10px;
-    background-color: #007bff;
+    bottom: 25px;
+    right: 25px;
+    background-color: #3498db;
+    font-size: 16px; /* Slightly smaller than main buttons */
+    padding: 12px 20px;
 }
 
-#startScreen button:hover, #gameOverScreen button:hover, #toggleSoundButton:hover {
-    background-color: #45a049;
+#startScreen button:hover, #gameOverScreen button:hover {
+    background-color: #27ae60;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 10px rgba(0,0,0,0.35);
 }
 #toggleSoundButton:hover {
-    background-color: #0056b3;
+    background-color: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 10px rgba(0,0,0,0.3);
+}
+
+#startScreen button:active, #gameOverScreen button:active, #toggleSoundButton:active {
+    transform: translateY(0px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
 
-#gameOverScreen p:nth-of-type(2) { /* "New High Score!" text */
-    color: #ffeb3b; /* Yellow */
+#gameOverScreen p:nth-of-type(2) { /* "New High Score!" */
+    color: #f1c40f;
     font-weight: bold;
-    display: none; /* Hidden by default */
+    font-size: 24px; /* << Increased font size */
+    font-family: 'Bangers', cursive;
+    letter-spacing: 1px;
+    display: none;
 }
