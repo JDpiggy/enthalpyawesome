@@ -163,3 +163,94 @@ canvas {
     margin-bottom: 30px;
     display: none;
 }
+/* ... (all your existing CSS before #gameOverScreen) ... */
+
+#gameOverScreen {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(44, 62, 80, 0.92);
+    padding: 40px; /* Adjusted padding a bit */
+    border-radius: 20px;
+    text-align: center;
+    pointer-events: all;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+    min-width: 500px;
+    max-width: 70%;
+    display: flex; /* Use flexbox for better layout */
+    flex-direction: column; /* Stack items vertically */
+    align-items: center; /* Center items horizontally */
+}
+
+#gameOverScreen h2 { /* "Game Over!" title */
+    margin-top: 0;
+    margin-bottom: 25px; /* Space below title */
+    color: #ff7f50;
+    font-size: 90px;
+    font-family: 'Bangers', cursive;
+    letter-spacing: 3px;
+    line-height: 1;
+    text-shadow: 4px 4px 0px rgba(0,0,0,0.25);
+}
+
+/* --- NEW: Score Info Box on Game Over Screen --- */
+.score-info-box {
+    background-color: rgba(0, 0, 0, 0.25); /* Semi-transparent dark box */
+    padding: 20px 30px;
+    border-radius: 10px;
+    margin-bottom: 25px; /* Space below the score box */
+    min-width: 250px; /* Ensure it has some width */
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+}
+
+#gameOverScreen .score-info-box p { /* Paragraphs inside the score box */
+    margin-top: 5px;
+    margin-bottom: 10px;
+    font-size: 24px; /* Larger score text */
+    line-height: 1.4;
+    color: #dfe6e9; /* Lighter text color */
+}
+
+#gameOverScreen .score-info-box p#newHighScoreTextGameOver { /* Specifically for "New High Score!" */
+    color: #fdcb6e; /* Brighter gold */
+    font-family: 'Bangers', cursive;
+    font-size: 28px;
+    letter-spacing: 1px;
+    margin-top: 15px; /* More space above it */
+    display: none; /* Still hidden by default, controlled by JS */
+}
+/* --- END: Score Info Box --- */
+
+
+#gameOverScreen button#restartButton { /* Specifically the restart button */
+    padding: 18px 36px;
+    font-size: 22px;
+    /* ... (keep your existing button styles: gradient, font, etc.) ... */
+    background-image: linear-gradient(to bottom, #55efc4, #00b894);
+    color: #1e272e;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-top: 10px; /* Adjusted margin if needed */
+    transition: all 0.2s ease;
+    pointer-events: all;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    font-family: 'Roboto', sans-serif;
+}
+
+#gameOverScreen button#restartButton:hover {
+    /* ... (keep existing hover styles) ... */
+    background-image: linear-gradient(to bottom, #69f2d0, #00c9a2);
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+}
+
+/* Remove the old p:nth-of-type(2) styling if it's not needed elsewhere,
+   or ensure it doesn't conflict with the new .score-info-box p#newHighScoreTextGameOver */
+/* #gameOverScreen p:nth-of-type(2) { ... old style ... } */
+
+/* ... (rest of your CSS) ... */
