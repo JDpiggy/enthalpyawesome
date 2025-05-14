@@ -8,10 +8,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const startScreen = document.getElementById('startScreen');
     const gameOverScreen = document.getElementById('gameOverScreen');
     const finalScoreDisplay = document.getElementById('finalScore');
-    const newHighScoreText = gameOverScreen.querySelector('p:nth-of-type(2)');
+    const newHighScoreText = gameOverScreen.querySelector('p:nth-of-type(2)'); // Assuming this is for "New High Score!"
     const startButton = document.getElementById('startButton');
     const restartButton = document.getElementById('restartButton');
-    const toggleSoundButton = document.getElementById('toggleSoundButton');
+    // const toggleSoundButton = document.getElementById('toggleSoundButton'); // REMOVED
 
     // Game settings
     const GAME_WIDTH = 1280;
@@ -21,18 +21,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let rocket, pipes, powerUps, particles;
     let score, highScore, frame, gameSpeed, gameState;
-    let soundEnabled = true;
+    // let soundEnabled = true; // REMOVED - Sound functionality is now effectively off
 
     // --- ASSET LOADING ---
     const rocketImg = new Image();
-    rocketImg.src = 'assets/tiles/pixil-frame-0.png'; // Your rocket image
+    rocketImg.src = 'assets/tiles/pixil-frame-0.png';
     rocketImg.isReady = false;
 
-    const pipeImg = new Image(); // For beaker/pipe image
-    pipeImg.src = 'assets/tiles/beaker-removebg-preview.png'; // Path to your beaker image
+    const pipeImg = new Image();
+    pipeImg.src = 'assets/tiles/beaker-removebg-preview.png';
     pipeImg.isReady = false;
 
-    let assetsToLoad = 2; // We have two critical images now
+    let assetsToLoad = 2;
     let assetsLoaded = 0;
 
     function assetLoadManager() {
@@ -42,10 +42,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 startButton.disabled = false;
                 startButton.textContent = "Start Game";
             }
-            // If game starts on the start screen, do an initial draw once assets are ready
-            if (gameState === 'START' && !rocket && ctx) {
-                initGame(); // This might re-trigger asset check, ensure it's safe
-                drawGameObjects();
+            // If on start screen and assets load, update UI but don't draw full game objects
+            if (gameState === 'START' && ctx) {
+                 updateUI(rocket || { fuel: MAX_FUEL }); // Update with default fuel if rocket not made
+                 // Optionally draw a static background if desired for the start screen canvas
+                 // For example:
+                 // ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT); // Clear if needed
+                 // drawStaticBackground(); // A new function you might create
             }
             console.log("All critical assets loading attempted.");
         }
@@ -58,11 +61,11 @@ document.addEventListener('DOMContentLoaded', () => {
     pipeImg.onerror = () => { console.error("Failed to load pipe/beaker image: " + pipeImg.src); pipeImg.isReady = false; assetLoadManager(); };
     // --- END ASSET LOADING ---
 
-    const sounds = {
+    const sounds = { // Sound objects can remain, but playSound will be ineffective without soundEnabled logic
         flap: new Audio(), score: new Audio(), hit: new Audio(),
         powerup: new Audio(), fuelEmpty: new Audio()
     };
-    // Example: sounds.flap.src = 'assets/sounds/flap.wav'; // Make sure paths are correct
+    // Example: sounds.flap.src = 'assets/sounds/flap.wav';
 
     // Rocket properties
     const ROCKET_WIDTH = 80;
@@ -70,21 +73,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const GRAVITY = 0.28;
     const FLAP_STRENGTH = -7.2;
     const MAX_FUEL = 100;
-    const FUEL_CONSUMPTION = 2.5;   // Noticeable consumption
-    const FUEL_REGEN_RATE = 0.05; // Slow regeneration
+    const FUEL_CONSUMPTION = 2.5;
+    const FUEL_REGEN_RATE = 0.05;
 
     // Pipe properties
-    const PIPE_WIDTH = 120; // This will be the drawn width of the beaker image
+    const PIPE_WIDTH = 120;
     const PIPE_GAP = 250;
     const PIPE_SPACING = 450;
     const PIPE_SPEED_INITIAL = 2.0;
-    const PIPE_VERTICAL_MOVEMENT_MAX = 60; // Max deviation for gap center
+    const PIPE_VERTICAL_MOVEMENT_MAX = 60;
     const PIPE_VERTICAL_SPEED = 0.45;
 
     // Power-up properties
     const POWERUP_SIZE = 40;
     const POWERUP_SPAWN_CHANCE = 0.0055;
-    const SHIELD_DURATION = 540; // 9 seconds at 60fps
+    const SHIELD_DURATION = 540;
 
     class Rocket {
         constructor() {
@@ -97,8 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.shieldActive = false;
             this.shieldTimer = 0;
         }
-
-        flap() {
+        flap() { /* ... same as before ... */
             if (this.fuel > 0) {
                 this.velocityY = FLAP_STRENGTH;
                 this.fuel -= FUEL_CONSUMPTION;
@@ -111,8 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 playSound(sounds.fuelEmpty);
             }
         }
-
-        update() {
+        update() { /* ... same as before ... */
             this.velocityY += GRAVITY;
             this.y += this.velocityY;
 
@@ -128,18 +129,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            if (this.y < 0) { // Prevent going off top
+            if (this.y < 0) {
                 this.y = 0;
                 this.velocityY = 0;
             }
-            // Ground collision is handled in checkCollisions
         }
-
-        draw() {
+        draw() { /* ... same as before ... */
             if (rocketImg.isReady) {
                 ctx.drawImage(rocketImg, this.x, this.y, this.width, this.height);
             } else {
-                ctx.fillStyle = 'darkred'; // Fallback
+                ctx.fillStyle = 'darkred'; 
                 ctx.fillRect(this.x, this.y, this.width, this.height);
             }
 
@@ -154,44 +153,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    class Pipe {
+    class Pipe { /* ... same as before ... */
         constructor(x, isTopPipe, gapY, movesVertically) {
             this.x = x;
             this.width = PIPE_WIDTH;
             this.isTopPipe = isTopPipe;
-            this.gapY = gapY; // Logical center of the gap
+            this.gapY = gapY; 
 
             if (isTopPipe) {
                 this.y = 0;
                 this.height = gapY - PIPE_GAP / 2;
-            } else { // Bottom pipe
+            } else { 
                 this.y = gapY + PIPE_GAP / 2;
                 this.height = GAME_HEIGHT - this.y;
             }
-            if (this.height < 0) this.height = 0; // Ensure non-negative height
+            if (this.height < 0) this.height = 0; 
 
             this.passed = false;
             this.movesVertically = movesVertically;
             this.verticalDirection = Math.random() > 0.5 ? 1 : -1;
         }
-
-        update() {
+        update() { 
             this.x -= gameSpeed;
 
             if (this.movesVertically) {
                 const moveAmount = PIPE_VERTICAL_SPEED * this.verticalDirection;
                 let newGapCenter = this.gapY + moveAmount;
 
-                const minGapCenter = PIPE_GAP / 2 + 50; // Margin from top for gap center
-                const maxGapCenter = GAME_HEIGHT - PIPE_GAP / 2 - 50; // Margin from bottom
+                const minGapCenter = PIPE_GAP / 2 + 50; 
+                const maxGapCenter = GAME_HEIGHT - PIPE_GAP / 2 - 50; 
 
                 if (newGapCenter > maxGapCenter || newGapCenter < minGapCenter) {
                     this.verticalDirection *= -1;
-                    newGapCenter = Math.max(minGapCenter, Math.min(maxGapCenter, this.gapY + (PIPE_VERTICAL_SPEED * this.verticalDirection))); // Recalculate with new direction
+                    newGapCenter = Math.max(minGapCenter, Math.min(maxGapCenter, this.gapY + (PIPE_VERTICAL_SPEED * this.verticalDirection))); 
                 }
                 this.gapY = newGapCenter;
 
-                // Recalculate y and height based on the new logical gapY
                 if (this.isTopPipe) {
                     this.y = 0;
                     this.height = this.gapY - PIPE_GAP / 2;
@@ -199,23 +196,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     this.y = this.gapY + PIPE_GAP / 2;
                     this.height = GAME_HEIGHT - this.y;
                 }
-                if (this.height < 0) this.height = 0; // Safety check
+                if (this.height < 0) this.height = 0;
             }
         }
-
-        draw() {
+        draw() { 
             if (!pipeImg.isReady || this.height <= 0) {
-                // Optional: Draw a fallback rectangle if image isn't ready
-                // ctx.fillStyle = 'darkgrey';
-                // ctx.fillRect(this.x, this.y, this.width, this.height);
                 return;
             }
 
             if (this.isTopPipe) {
                 ctx.save();
-                ctx.translate(this.x, this.y + this.height); // Move to bottom-left of where flipped img starts
-                ctx.scale(1, -1); // Flip Y-axis
-                ctx.drawImage(pipeImg, 0, 0, this.width, this.height); // Draw from new (0,0)
+                ctx.translate(this.x, this.y + this.height); 
+                ctx.scale(1, -1); 
+                ctx.drawImage(pipeImg, 0, 0, this.width, this.height); 
                 ctx.restore();
             } else {
                 ctx.drawImage(pipeImg, this.x, this.y, this.width, this.height);
@@ -223,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    class PowerUp {
+    class PowerUp { /* ... same as before ... */
         constructor(x, y, type) {
             this.x = x; this.y = y; this.size = POWERUP_SIZE; this.type = type; this.collected = false;
         }
@@ -248,12 +241,12 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.font = powerUpFont;
             ctx.fillText(symbol, this.x + this.size / 2, this.y + this.size / 2 + this.size * 0.08);
         }
-        applyEffect(rocketInstance) { // Renamed parameter to avoid conflict
+        applyEffect(rocketInstance) { 
             playSound(sounds.powerup);
             if (this.type === 'shield') {
                 rocketInstance.shieldActive = true; rocketInstance.shieldTimer = SHIELD_DURATION;
             } else if (this.type === 'fuel') {
-                rocketInstance.fuel = MAX_FUEL; // This refills the fuel
+                rocketInstance.fuel = MAX_FUEL;
             }
             this.collected = true;
             for (let i = 0; i < 20; i++) {
@@ -262,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    class Particle {
+    class Particle { /* ... same as before ... */
         constructor(x, y, type) {
             this.x = x; this.y = y; this.type = type;
             this.size = Math.random() * (type === 'explosion' ? 10 : 7) + 3;
@@ -280,7 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.velocityY = Math.sin(angle) * speed;
                 if (type === 'explosion') {
                     this.color = `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 120)}, 0, 0.8)`;
-                } else { // collect
+                } else { 
                     this.color = `rgba(255, 230, ${Math.random() > 0.5 ? 50 : 150}, 0.8)`;
                 }
             }
@@ -305,18 +298,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function playSound(sound) {
-        if (soundEnabled && sound.src && sound.readyState >= 2) {
+        // Sound is effectively disabled as soundEnabled logic is removed
+        // but calls can remain for future re-implementation.
+        // if (soundEnabled && sound.src && sound.readyState >= 2) {
+        if (false && sound.src && sound.readyState >= 2) { // Hardcoded false for now
             sound.currentTime = 0;
             sound.play().catch(e => console.warn("Audio play failed:", e));
         }
     }
 
     function initGame() {
-        // Rocket is created in startGame or if it's null
+        rocket = null; // Ensure rocket is not pre-created here
         pipes = []; powerUps = []; particles = [];
         score = 0; frame = 0; gameSpeed = PIPE_SPEED_INITIAL;
-        gameState = 'START'; loadHighScore();
-        startScreen.style.display = 'flex'; gameOverScreen.style.display = 'none';
+        gameState = 'START';
+        loadHighScore();
+
+        startScreen.style.display = 'flex';
+        gameOverScreen.style.display = 'none';
 
         if (startButton) {
             if (assetsLoaded < assetsToLoad) {
@@ -325,69 +324,64 @@ document.addEventListener('DOMContentLoaded', () => {
                 startButton.disabled = false; startButton.textContent = "Start Game";
             }
         }
-        // Create a temporary rocket for UI update if it doesn't exist yet for the start screen
-        let tempRocketForUI = rocket || { fuel: MAX_FUEL };
-        updateUI(tempRocketForUI); // Pass rocket or a default for UI
+        updateUI({ fuel: MAX_FUEL }); // Update UI with default values, no actual rocket needed yet
 
-        if (ctx && gameState === 'START') {
-             if (!rocket) rocket = new Rocket(); // Ensure rocket exists for first draw
-             drawGameObjects();
+        // Do NOT call drawGameObjects() here, as it would draw game elements under the start screen.
+        // If you want a static background on the canvas for the start screen, draw it separately.
+        if (ctx) {
+             ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT); // Clear canvas for start screen
+            // Example: draw a simple static background
+            // ctx.fillStyle = '#87CEEB'; // Match canvas background color
+            // ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
         }
     }
 
     function startGame() {
         gameState = 'PLAYING';
         startScreen.style.display = 'none';
-        gameOverScreen.style.display = 'none'; // Crucial for hiding Game Over screen
+        gameOverScreen.style.display = 'none';
 
-        if(rocket) {
-            rocket.y = GAME_HEIGHT / 2 - ROCKET_HEIGHT / 2;
-            rocket.velocityY = 0;
-            rocket.fuel = MAX_FUEL;
-            rocket.shieldActive = false;
-            rocket.shieldTimer = 0;
-        } else {
-            rocket = new Rocket();
-        }
+        rocket = new Rocket(); // Create or reset the rocket here
 
         pipes = []; powerUps = []; particles = [];
-        score = 0; frame = 0; gameSpeed = PIPE_SPEED_INITIAL;
+        score = 0; frame = 0; // Reset frame too
+        gameSpeed = PIPE_SPEED_INITIAL;
 
-        updateUI(rocket); // Pass the active rocket to UI
+        updateUI(rocket);
         gameLoop();
     }
 
-    function gameOver() {
+    function gameOver() { /* ... same as before ... */
         playSound(sounds.hit); gameState = 'GAMEOVER';
         if (rocket) {
             for (let i = 0; i < 50; i++) {
                 particles.push(new Particle(rocket.x + rocket.width / 2, rocket.y + rocket.height / 2, 'explosion'));
             }
-            rocket.y = -2000; // Move off-screen
+            rocket.y = -2000; 
         }
 
         if (score > highScore) {
             highScore = score; saveHighScore();
-            newHighScoreText.style.display = 'block';
+            if(newHighScoreText) newHighScoreText.style.display = 'block';
         } else {
-            newHighScoreText.style.display = 'none';
+            if(newHighScoreText) newHighScoreText.style.display = 'none';
         }
-        if(finalScoreDisplay) finalScoreDisplay.textContent = score; // Check if element exists
-        gameOverScreen.style.display = 'flex';
-        updateUI(rocket); // Update UI on game over
+        if(finalScoreDisplay) finalScoreDisplay.textContent = score; 
+        if(gameOverScreen) gameOverScreen.style.display = 'flex';
+        updateUI(rocket); 
     }
 
-    function loadHighScore() { highScore = parseInt(localStorage.getItem('flappyRocketAFHighScoreV2')) || 0; } // Changed key slightly
-    function saveHighScore() { localStorage.setItem('flappyRocketAFHighScoreV2', highScore); }
+    function loadHighScore() { highScore = parseInt(localStorage.getItem('flappyLaliFartV1')) || 0; } // Changed key for safety
+    function saveHighScore() { localStorage.setItem('flappyLaliFartV1', highScore); }
 
-    function handleInput(e) {
+    function handleInput(e) { /* ... same as before ... */
         if (e.code === 'Space' || e.type === 'mousedown' || e.type === 'touchstart') {
             e.preventDefault();
             if (gameState === 'PLAYING' && rocket) { rocket.flap(); }
         }
     }
 
-    function generatePipes() {
+    function generatePipes() { /* ... same as before ... */
         if (frame % Math.floor(PIPE_SPACING / gameSpeed) === 0) {
             const margin = 120;
             const gapY = Math.random() * (GAME_HEIGHT - PIPE_GAP - 2 * margin) + (PIPE_GAP / 2) + margin;
@@ -404,7 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pipes = pipes.filter(pipe => pipe.x + pipe.width > 0);
     }
 
-    function generatePowerUps() {
+    function generatePowerUps() { /* ... same as before ... */
         if (Math.random() < POWERUP_SPAWN_CHANCE && powerUps.length < 3) {
             const powerUpType = Math.random() < 0.5 ? 'shield' : 'fuel';
             const powerUpY = Math.random() * (GAME_HEIGHT - POWERUP_SIZE - 150) + 75;
@@ -414,7 +408,7 @@ document.addEventListener('DOMContentLoaded', () => {
         powerUps = powerUps.filter(pu => pu.x + pu.size > 0 && !pu.collected);
     }
 
-    function checkCollisions() {
+    function checkCollisions() { /* ... same as before ... */
         if (!rocket || gameState !== 'PLAYING') return;
 
         if (rocket.y + rocket.height >= GAME_HEIGHT) {
@@ -442,30 +436,30 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!pu.collected &&
                 rocket.x < pu.x + pu.size && rocket.x + rocket.width > pu.x &&
                 rocket.y < pu.y + pu.size && rocket.y + rocket.height > pu.y) {
-                pu.applyEffect(rocket); // Pass the game's rocket instance
+                pu.applyEffect(rocket);
             }
         }
     }
 
-    function updateUI(currentRocket) { // Pass rocket instance for fuel
+    function updateUI(currentRocket) { /* ... same as before ... */
         if(scoreDisplay) scoreDisplay.textContent = `Score: ${score}`;
         if(highScoreDisplay) highScoreDisplay.textContent = `High Score: ${highScore}`;
 
-        let fuelSource = currentRocket || rocket; // Use passed rocket or global if available
+        let fuelSource = currentRocket; 
 
-        if (fuelSource && fuelBar) { // Check if fuelSource and fuelBar element exist
+        if (fuelSource && fuelBar) { 
             const fuelPercentage = (fuelSource.fuel / MAX_FUEL) * 100;
             fuelBar.style.width = `${fuelPercentage}%`;
             if (fuelPercentage < 20) fuelBar.style.backgroundColor = '#d63031';
             else if (fuelPercentage < 50) fuelBar.style.backgroundColor = '#fdcb6e';
             else fuelBar.style.backgroundColor = '#e17055';
-        } else if (fuelBar) { // Default if no rocket (e.g. very initial load)
+        } else if (fuelBar) { 
              fuelBar.style.width = '100%';
              fuelBar.style.backgroundColor = '#e17055';
         }
     }
 
-    function updateGameObjects() {
+    function updateGameObjects() { /* ... same as before ... */
         if (gameState !== 'PLAYING') return;
         if (rocket) rocket.update();
         pipes.forEach(pipe => pipe.update());
@@ -476,8 +470,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function drawGameObjects() {
-        if (!ctx) return; // Ensure context is available
+    function drawGameObjects() { /* ... same as before ... */
+        if (!ctx) return; 
         ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
         pipes.forEach(pipe => pipe.draw());
@@ -486,16 +480,16 @@ document.addEventListener('DOMContentLoaded', () => {
         particles.forEach(p => p.draw());
     }
 
-    function gameLoop() {
+    function gameLoop() { /* ... same as before ... */
         if (gameState !== 'PLAYING') return;
         frame++;
         generatePipes();
-        if (frame % 75 === 0) generatePowerUps(); // Adjusted frequency
+        if (frame % 75 === 0) generatePowerUps(); 
 
         updateGameObjects();
         checkCollisions();
         drawGameObjects();
-        updateUI(rocket); // Pass the active rocket
+        updateUI(rocket); 
         requestAnimationFrame(gameLoop);
     }
 
@@ -504,17 +498,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (restartButton) restartButton.addEventListener('click', startGame);
 
     window.addEventListener('keydown', handleInput);
-    if (canvas) { // Ensure canvas exists before adding listeners
+    if (canvas) {
         canvas.addEventListener('mousedown', handleInput);
         canvas.addEventListener('touchstart', handleInput, { passive: false });
     }
 
-    if (toggleSoundButton) {
-        toggleSoundButton.addEventListener('click', () => {
-            soundEnabled = !soundEnabled;
-            toggleSoundButton.textContent = `Sound: ${soundEnabled ? 'ON' : 'OFF'}`;
-        });
-    }
+    // Removed toggleSoundButton event listener
 
-    initGame(); // Initialize game state and UI
+    initGame();
 });
