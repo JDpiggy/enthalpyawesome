@@ -34,11 +34,16 @@ document.addEventListener('DOMContentLoaded', () => {
     fuelPowerUpImg.src = 'assets/tiles/beans-removebg-preview.png';
     fuelPowerUpImg.isReady = false;
 
-    let assetsToLoad = 3;
+    // NEW: Background Music
+    const backgroundMusic = new Audio();
+    backgroundMusic.isReady = false; // Tracks if loading was attempted/successful
+
+    let assetsToLoad = 4; // Updated: 3 images + 1 music
     let assetsLoaded = 0;
 
     function assetLoadManager() {
         assetsLoaded++;
+        console.log(`Assets loaded: ${assetsLoaded}/${assetsToLoad}`);
         if (assetsLoaded >= assetsToLoad) {
             if (startButton) {
                 startButton.disabled = false;
@@ -48,6 +53,12 @@ document.addEventListener('DOMContentLoaded', () => {
                  updateUI(rocket || { fuel: MAX_FUEL });
                  if (!isStartScreenLoopRunning && laliCharacterImg.isReady) {
                     startScreenAnimationLoop();
+                 }
+                 // Attempt to play music once all assets are loaded and on start screen
+                 if (backgroundMusic.isReady && backgroundMusic.paused) {
+                    backgroundMusic.play().catch(e => {
+                        console.warn("Background Music autoplay likely blocked by browser on initial load. Will attempt play on 'Start Game' click.", e);
+                    });
                  }
             }
             console.log("All critical assets loading attempted.");
@@ -60,13 +71,39 @@ document.addEventListener('DOMContentLoaded', () => {
     pipeImg.onerror = () => { console.error("Failed to load pipe/cylinder image: " + pipeImg.src); pipeImg.isReady = false; assetLoadManager(); };
     fuelPowerUpImg.onload = () => { fuelPowerUpImg.isReady = true; console.log("Fuel/Beans power-up image loaded."); assetLoadManager(); };
     fuelPowerUpImg.onerror = () => { console.error("Failed to load fuel/beans power-up image: " + fuelPowerUpImg.src); fuelPowerUpImg.isReady = false; assetLoadManager(); };
+
+    // NEW: Background Music Loading
+    backgroundMusic.src = 'assets/sounds/background_music.mp3'; // <<< IMPORTANT: SET YOUR MUSIC FILE PATH
+    backgroundMusic.loop = true;
+    backgroundMusic.volume = 0.3; // Adjust volume as needed (0.0 to 1.0)
+    backgroundMusic.oncanplaythrough = () => {
+        backgroundMusic.isReady = true;
+        console.log("Background music can play through.");
+        assetLoadManager();
+    };
+    backgroundMusic.onerror = (e) => {
+        backgroundMusic.isReady = false; // Set to false, or true if you count "attempted"
+        console.error("Failed to load background music.", e);
+        assetLoadManager(); // Still call asset manager to not block the game
+    };
+    // Browsers often require user interaction to load/play audio. Some might load metadata without explicit load().
+    // Explicitly calling load() is good practice.
+    try {
+        backgroundMusic.load();
+    } catch (e) {
+        console.error("Error calling backgroundMusic.load():", e);
+        // If load() itself throws an error (unlikely for valid audio elements but possible in some environments)
+        // We'll still call assetLoadManager from onerror if it triggers.
+        // If onerror doesn't trigger, we might need to call assetLoadManager here too.
+        // However, onerror should cover most load failures.
+    }
     // --- END ASSET LOADING ---
 
     const sounds = {
         flap: new Audio(), score: new Audio(), hit: new Audio(),
         powerup: new Audio(), fuelEmpty: new Audio()
     };
-    sounds.flap.src = 'assets/sounds/fart.wav'; // <<< IMPORTANT: SET CORRECT PATH
+    sounds.flap.src = 'assets/sounds/fart.wav';
 
     Object.values(sounds).forEach(sound => {
         if (sound.src) {
@@ -77,20 +114,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Rocket (Lali Character) properties
-    const ROCKET_WIDTH = 90;  // <<< ADJUSTED (was 100) - Narrower to focus on torso for collision
-const ROCKET_HEIGHT = 130; // <<< ADJUSTED (was 120) - Taller
-const GRAVITY = 0.28;         // May need slight re-tuning with new dimensions
-const FLAP_STRENGTH = -7.5; // <<< SLIGHTLY INCREASED flap for taller/heavier feel
-const MAX_FUEL = 100;
-const FUEL_CONSUMPTION = 2.5;
-const FUEL_REGEN_RATE = 0;
-
-// Pipe properties
-
+    const ROCKET_WIDTH = 90;
+    const ROCKET_HEIGHT = 130;
+    const GRAVITY = 0.28;
+    const FLAP_STRENGTH = -7.5;
+    const MAX_FUEL = 100;
+    const FUEL_CONSUMPTION = 2.5;
+    const FUEL_REGEN_RATE = 0;
 
     // Pipe properties
     const PIPE_WIDTH = 120;
-    const PIPE_GAP = 260 + (ROCKET_HEIGHT - 95); // Adjust gap based on new rocket height if needed
+    const PIPE_GAP = 260 + (ROCKET_HEIGHT - 95);
     const PIPE_SPACING = 450;
     const PIPE_SPEED_INITIAL = 2.0;
     const PIPE_VERTICAL_MOVEMENT_MAX_OFFSET = 60;
@@ -110,7 +144,7 @@ const FUEL_REGEN_RATE = 0;
 
     // Start Screen Animation Variables
     let startScreenAnimFrame = 0;
-    const startScreenCharYOffsetMax = 15;
+    const startScreenCharYOffsetMax = 25; // UPDATED: Increased for a more noticeable bob with a larger character
     const startScreenCharBobSpeed = 0.03;
     let isStartScreenLoopRunning = false;
 
@@ -175,7 +209,7 @@ const FUEL_REGEN_RATE = 0;
         }
     }
 
-    class Pipe { /* ... (same as previous version) ... */
+    class Pipe {
         constructor(x, initialGapY, movesVertically) {
             this.x = x;
             this.width = PIPE_WIDTH;
@@ -201,10 +235,10 @@ const FUEL_REGEN_RATE = 0;
                 this.bottomPipe.height = MIN_PIPE_SEGMENT_HEIGHT;
             }
 
-            if(this.topPipe.y + this.topPipe.height > this.bottomPipe.y){
-                this.topPipe.height = this.currentGapY - PIPE_GAP / 2;
+            if(this.topPipe.y + this.topPipe.height > this.bottomPipe.y){ // Ensure pipes don't overlap if gap is too small
+                this.topPipe.height = Math.max(MIN_PIPE_SEGMENT_HEIGHT, this.currentGapY - PIPE_GAP / 2);
                 this.bottomPipe.y = this.currentGapY + PIPE_GAP / 2;
-                this.bottomPipe.height = GAME_HEIGHT - this.bottomPipe.y;
+                this.bottomPipe.height = Math.max(MIN_PIPE_SEGMENT_HEIGHT, GAME_HEIGHT - this.bottomPipe.y);
             }
         }
 
@@ -217,14 +251,14 @@ const FUEL_REGEN_RATE = 0;
 
                 const minPossibleGapY = this.initialGapY - PIPE_VERTICAL_MOVEMENT_MAX_OFFSET;
                 const maxPossibleGapY = this.initialGapY + PIPE_VERTICAL_MOVEMENT_MAX_OFFSET;
-                const screenEdgeMinGapY = PIPE_GAP / 2 + MIN_PIPE_SEGMENT_HEIGHT + 10;
-                const screenEdgeMaxGapY = GAME_HEIGHT - (PIPE_GAP / 2 + MIN_PIPE_SEGMENT_HEIGHT + 10);
+                const screenEdgeMinGapY = PIPE_GAP / 2 + MIN_PIPE_SEGMENT_HEIGHT + 10; // Min Y for gap center considering pipe heights
+                const screenEdgeMaxGapY = GAME_HEIGHT - (PIPE_GAP / 2 + MIN_PIPE_SEGMENT_HEIGHT + 10); // Max Y for gap center
                 const finalMinGapY = Math.max(minPossibleGapY, screenEdgeMinGapY);
                 const finalMaxGapY = Math.min(maxPossibleGapY, screenEdgeMaxGapY);
 
                 if (newGapCenter > finalMaxGapY || newGapCenter < finalMinGapY) {
                     this.verticalDirection *= -1;
-                    newGapCenter = Math.max(finalMinGapY, Math.min(finalMaxGapY, newGapCenter));
+                    newGapCenter = Math.max(finalMinGapY, Math.min(finalMaxGapY, newGapCenter)); // Clamp
                 }
                 this.currentGapY = newGapCenter;
             }
@@ -237,7 +271,7 @@ const FUEL_REGEN_RATE = 0;
             if (this.topPipe.height > 0) {
                 ctx.save();
                 ctx.translate(this.x, this.topPipe.y + this.topPipe.height);
-                ctx.scale(1, -1);
+                ctx.scale(1, -1); // Flip for top pipe
                 ctx.drawImage(pipeImg, 0, 0, this.width, this.topPipe.height);
                 ctx.restore();
             }
@@ -248,7 +282,7 @@ const FUEL_REGEN_RATE = 0;
         }
     }
 
-    class PowerUp { /* ... (same as previous version) ... */
+    class PowerUp {
         constructor(x, y, type) {
             this.x = x; this.y = y; this.size = POWERUP_SIZE; this.type = type; this.collected = false;
         }
@@ -270,7 +304,7 @@ const FUEL_REGEN_RATE = 0;
             } else if (this.type === 'fuel') {
                 if (fuelPowerUpImg.isReady) {
                     ctx.drawImage(fuelPowerUpImg, this.x, this.y, this.size, this.size);
-                } else {
+                } else { // Fallback drawing for fuel
                     ctx.beginPath();
                     ctx.arc(this.x + this.size / 2, this.y + this.size / 2, this.size / 2, 0, Math.PI * 2);
                     ctx.fillStyle = 'rgba(255, 190, 0, 0.9)';
@@ -298,7 +332,7 @@ const FUEL_REGEN_RATE = 0;
         }
     }
 
-    class Particle { /* ... (same as previous version with brown fart particles) ... */
+    class Particle {
         constructor(x, y, type) {
             this.x = x; this.y = y; this.type = type;
             this.size = Math.random() * (type === 'explosion' ? 10 : 7) + 3;
@@ -307,37 +341,37 @@ const FUEL_REGEN_RATE = 0;
             const angle = Math.random() * Math.PI * 2;
             const speed = Math.random() * (type === 'explosion' ? 10 : (type === 'collect' ? 5 : 3)) + 1;
             if (type === 'thrust') { // Fart particles
-                const r = Math.floor(Math.random() * 50) + 100; 
-                const g = Math.floor(Math.random() * 40) + 60;  
-                const b = Math.floor(Math.random() * 30) + 20;  
-                this.color = `rgba(${r}, ${g}, ${b}, ${Math.random() * 0.4 + 0.4})`; 
-                this.velocityX = (Math.random() - 0.5) * 2.5; 
-                this.velocityY = Math.random() * 2.0 + 1.0;   
-                this.size = Math.random() * 8 + 4; 
-            } else { 
+                const r = Math.floor(Math.random() * 50) + 100;
+                const g = Math.floor(Math.random() * 40) + 60;
+                const b = Math.floor(Math.random() * 30) + 20;
+                this.color = `rgba(${r}, ${g}, ${b}, ${Math.random() * 0.4 + 0.4})`;
+                this.velocityX = (Math.random() - 0.5) * 2.5;
+                this.velocityY = Math.random() * 2.0 + 1.0;
+                this.size = Math.random() * 8 + 4;
+            } else {
                 this.velocityX = Math.cos(angle) * speed;
                 this.velocityY = Math.sin(angle) * speed;
                 if (type === 'explosion') {
                     this.color = `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 120)}, 0, 0.8)`;
-                } else { 
+                } else { // collect particles
                     this.color = `rgba(255, 230, ${Math.random() > 0.5 ? 50 : 150}, 0.8)`;
                 }
             }
         }
         update() {
             this.x += this.velocityX; this.y += this.velocityY;
-            if (this.type === 'thrust') { 
-                this.velocityY += 0.03; 
-                this.velocityX *= 0.98; 
-                this.size *= 0.99;      
+            if (this.type === 'thrust') {
+                this.velocityY += 0.03;
+                this.velocityX *= 0.98;
+                this.size *= 0.99;
             } else if (this.type === 'explosion' || this.type === 'collect') {
                 this.velocityX *= 0.97; this.velocityY *= 0.97;
-                if(this.type === 'explosion') this.velocityY += 0.1;
+                if(this.type === 'explosion') this.velocityY += 0.1; // gravity for explosion bits
             }
             this.life--;
-            if (this.size < 1) this.life = 0; 
+            if (this.size < 1) this.life = 0; // particle fades if too small
         }
-        draw() { 
+        draw() {
             ctx.globalAlpha = Math.max(0, this.life / this.initialLife);
             ctx.fillStyle = this.color;
             ctx.beginPath();
@@ -352,26 +386,32 @@ const FUEL_REGEN_RATE = 0;
             sound.currentTime = 0;
             sound.play().catch(error => {
                 console.warn(`Sound play failed for ${sound.src}:`, error);
-                // This often happens due to browser autoplay restrictions requiring user interaction first.
-                // The first click on "Start Game" might count as user interaction for subsequent sounds.
             });
         } else if (sound && sound.src) {
             console.warn(`Sound ${sound.src} not ready or no src. State: ${sound.readyState}, networkState: ${sound.networkState}`);
-            // If loading failed or src is bad, it might not play.
-            // Attempt to load if it hasn't started.
             if(sound.networkState === HTMLMediaElement.NETWORK_NO_SOURCE || sound.networkState === HTMLMediaElement.NETWORK_EMPTY) {
-                 if (sound.src) sound.load(); // Only call load if src is set
+                 if (sound.src) sound.load();
             }
         }
     }
 
     function drawStartScreenCharacter(bobOffset) {
         if (!laliCharacterImg.isReady || !ctx) return;
-        const charWidth = ROCKET_WIDTH * 1.8;
-        const charHeight = ROCKET_HEIGHT * 1.8;
-        const charX = GAME_WIDTH / 2 - charWidth / 2;
-        const charYBase = GAME_HEIGHT * 0.35 - charHeight / 2;
+
+        // UPDATED: Make character bigger
+        const scaleFactor = 2.8; // Increased from 1.8 for a much bigger character
+        const charWidth = ROCKET_WIDTH * scaleFactor;
+        const charHeight = ROCKET_HEIGHT * scaleFactor;
+
+        // UPDATED: Position character on the right side of the screen
+        // This positions the character's center at 80% of the game width.
+        // Adjust 0.80 (80%) as needed.
+        const charX = GAME_WIDTH * 0.80 - charWidth / 2;
+
+        // UPDATED: Adjust Y to be roughly vertically centered and accommodate bobbing
+        const charYBase = GAME_HEIGHT / 2 - charHeight / 2; // Center vertically
         const charY = charYBase + bobOffset;
+
         ctx.drawImage(laliCharacterImg, charX, charY, charWidth, charHeight);
     }
 
@@ -381,21 +421,25 @@ const FUEL_REGEN_RATE = 0;
             return;
         }
         isStartScreenLoopRunning = true;
-        ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+        ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT); // Clear canvas for animation
+
         startScreenAnimFrame++;
         const bobOffset = Math.sin(startScreenAnimFrame * startScreenCharBobSpeed) * startScreenCharYOffsetMax;
-        drawStartScreenCharacter(bobOffset);
+        drawStartScreenCharacter(bobOffset); // Draw the updated character
+
         requestAnimationFrame(startScreenAnimationLoop);
     }
 
     function initGame() {
-        rocket = null;
+        rocket = null; // Ensure rocket is null before new one is created
         pipes = []; powerUps = []; particles = [];
         score = 0; frame = 0; gameSpeed = PIPE_SPEED_INITIAL;
         gameState = 'START';
         loadHighScore();
+
         startScreen.style.display = 'flex';
         gameOverScreen.style.display = 'none';
+
         if (startButton) {
             if (assetsLoaded < assetsToLoad) {
                 startButton.disabled = true; startButton.textContent = "Loading Assets...";
@@ -403,14 +447,24 @@ const FUEL_REGEN_RATE = 0;
                 startButton.disabled = false; startButton.textContent = "Start Game";
             }
         }
-        updateUI({ fuel: MAX_FUEL });
+
+        updateUI({ fuel: MAX_FUEL }); // Initialize UI with full fuel
         if (ctx) {
-             ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+             ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT); // Clear canvas initially
         }
+
         canSpawnEmergencyBeans = true;
         emergencyBeansCooldownTimer = 0;
+
+        // Start animation loop if assets are ready and not already running
         if (assetsLoaded >= assetsToLoad && laliCharacterImg.isReady && !isStartScreenLoopRunning) {
             startScreenAnimationLoop();
+            // Attempt to play music here once assets are loaded
+            if (backgroundMusic.isReady && backgroundMusic.paused) {
+                backgroundMusic.play().catch(e => {
+                    console.warn("BG Music autoplay likely blocked on init. Will try on game start.", e);
+                });
+            }
         }
     }
 
@@ -419,189 +473,273 @@ const FUEL_REGEN_RATE = 0;
         gameState = 'PLAYING';
         startScreen.style.display = 'none';
         gameOverScreen.style.display = 'none';
+
         rocket = new Rocket();
-        pipes = []; powerUps = []; particles = [];
-        score = 0; frame = 0;
-        gameSpeed = PIPE_SPEED_INITIAL;
+        pipes = []; // Reset pipes
+        powerUps = []; // Reset powerups
+        particles = []; // Reset particles
+        score = 0;
+        frame = 0;
+        gameSpeed = PIPE_SPEED_INITIAL; // Reset game speed
         canSpawnEmergencyBeans = true;
         emergencyBeansCooldownTimer = 0;
+
         updateUI(rocket);
+
+        // NEW: Play background music on game start (reliable way due to autoplay policies)
+        if (backgroundMusic.isReady && backgroundMusic.paused) {
+            backgroundMusic.play().catch(e => console.error("Error playing background music:", e));
+        } else if (backgroundMusic.isReady && !backgroundMusic.paused) {
+            // Music is already playing, do nothing or you could restart it if desired
+            // backgroundMusic.currentTime = 0; // To restart if it was already playing
+        }
+
+
         gameLoop();
     }
 
-    function gameOver() { /* ... (same as previous version) ... */
-        playSound(sounds.hit); gameState = 'GAMEOVER';
-        if (rocket) {
+    function gameOver() {
+        playSound(sounds.hit);
+        gameState = 'GAMEOVER';
+
+        if (rocket) { // Create explosion particles at rocket's last known good position
             for (let i = 0; i < 50; i++) {
                 particles.push(new Particle(rocket.x + rocket.width / 2, rocket.y + rocket.height / 2, 'explosion'));
             }
-            rocket.y = -2000; 
+            rocket.y = -2000; // Move rocket off-screen
         }
 
+
         if (score > highScore) {
-            highScore = score; saveHighScore();
+            highScore = score;
+            saveHighScore();
             if(newHighScoreTextGameOver) newHighScoreTextGameOver.style.display = 'block';
         } else {
             if(newHighScoreTextGameOver) newHighScoreTextGameOver.style.display = 'none';
         }
-        if(finalScoreDisplay) finalScoreDisplay.textContent = score; 
+
+        if(finalScoreDisplay) finalScoreDisplay.textContent = score;
         if(gameOverScreen) gameOverScreen.style.display = 'flex';
-        updateUI(rocket);
+
+        updateUI(rocket); // Update UI, rocket might be null or off-screen
     }
 
     function loadHighScore() { highScore = parseInt(localStorage.getItem('flappyLaliFartV2')) || 0; }
     function saveHighScore() { localStorage.setItem('flappyLaliFartV2', highScore); }
-    function handleInput(e) { /* ... (same as previous version) ... */
+
+    function handleInput(e) {
         if (e.code === 'Space' || e.type === 'mousedown' || e.type === 'touchstart') {
-            e.preventDefault();
-            if (gameState === 'PLAYING' && rocket) { rocket.flap(); }
+            e.preventDefault(); // Prevent default actions like page scroll on space or text selection on click
+            if (gameState === 'PLAYING' && rocket) {
+                rocket.flap();
+            }
+            // Optional: Could make first click anywhere on start screen also start game
+            // if (gameState === 'START' && startButton && !startButton.disabled) {
+            //    startGame();
+            // }
         }
     }
-    function generatePipes() { /* ... (same as previous version) ... */
+
+    function generatePipes() {
         if (frame % Math.floor(PIPE_SPACING / gameSpeed) === 0) {
             const minPossibleYForGapCenter = PIPE_GAP / 2 + MIN_PIPE_SEGMENT_HEIGHT + 20;
             const maxPossibleYForGapCenter = GAME_HEIGHT - (PIPE_GAP / 2 + MIN_PIPE_SEGMENT_HEIGHT + 20);
             const rangeForGapCenter = maxPossibleYForGapCenter - minPossibleYForGapCenter;
+
             let initialGapY = (rangeForGapCenter > 0) ? (Math.random() * rangeForGapCenter + minPossibleYForGapCenter) : (GAME_HEIGHT / 2);
-            const movesVertically = Math.random() < 0.4;
+            const movesVertically = Math.random() < 0.4; // 40% chance a pipe pair moves
             pipes.push(new Pipe(GAME_WIDTH, initialGapY, movesVertically));
         }
-        pipes = pipes.filter(pipe => pipe.x + pipe.width > 0);
+        pipes = pipes.filter(pipe => pipe.x + pipe.width > 0); // Remove off-screen pipes
     }
-    function generatePowerUps() { /* ... (same as previous version) ... */
-        if (Math.random() < POWERUP_SPAWN_CHANCE && powerUps.length < 3) {
-            const powerUpType = Math.random() < 0.4 ? 'shield' : 'fuel';
-            const powerUpY = Math.random() * (GAME_HEIGHT - POWERUP_SIZE - 150) + 75;
-            const powerUpX = GAME_WIDTH + Math.random() * 200;
+
+    function generatePowerUps() {
+        if (Math.random() < POWERUP_SPAWN_CHANCE && powerUps.length < 3) { // Limit max on-screen powerups
+            const powerUpType = Math.random() < 0.4 ? 'shield' : 'fuel'; // 40% shield, 60% fuel
+            const powerUpY = Math.random() * (GAME_HEIGHT - POWERUP_SIZE - 150) + 75; // Spawn within a vertical band
+            const powerUpX = GAME_WIDTH + Math.random() * 200; // Spawn just off-screen to the right
             powerUps.push(new PowerUp(powerUpX, powerUpY, powerUpType));
         }
-        powerUps = powerUps.filter(pu => pu.x + pu.size > 0 && !pu.collected);
+        powerUps = powerUps.filter(pu => pu.x + pu.size > 0 && !pu.collected); // Remove collected or off-screen
     }
-    function trySpawnEmergencyBeans() { /* ... (same as previous version) ... */
+
+    function trySpawnEmergencyBeans() {
         if (rocket && rocket.fuel < (MAX_FUEL * (LOW_FUEL_THRESHOLD_PERCENT / 100)) && canSpawnEmergencyBeans) {
             const existingFuelPowerUp = powerUps.find(pu => pu.type === 'fuel');
-            if (!existingFuelPowerUp) {
+            if (!existingFuelPowerUp) { // Only spawn if no fuel power-up is already on screen
                 console.log("Low fuel! Spawning emergency beans.");
-                const powerUpY = rocket.y + (Math.random() - 0.5) * 100;
+                const powerUpY = rocket.y + (Math.random() - 0.5) * 100; // Near rocket's current Y
                 const clampedY = Math.max(POWERUP_SIZE / 2, Math.min(GAME_HEIGHT - POWERUP_SIZE * 1.5, powerUpY));
-                let spawnX = GAME_WIDTH * 0.8;
+
+                let spawnX = GAME_WIDTH * 0.8; // Default spawn X
+                // Try to spawn it after the next pipe or a bit ahead of the rocket
                 if (pipes.length > 0) {
                     const nextPipe = pipes.find(p => p.x + p.width > rocket.x + rocket.width);
                     if (nextPipe) {
                         spawnX = nextPipe.x + nextPipe.width + Math.random() * PIPE_SPACING * 0.3 + 50;
-                    } else if (pipes[pipes.length-1].x + pipes[pipes.length-1].width > 0){
+                    } else if (pipes[pipes.length-1].x + pipes[pipes.length-1].width > 0){ // If last pipe is still on screen
                         spawnX = pipes[pipes.length-1].x + pipes[pipes.length-1].width + Math.random() * PIPE_SPACING * 0.3 + 50;
                     }
                 }
-                spawnX = Math.max(spawnX, rocket.x + GAME_WIDTH * 0.3);
-                spawnX = Math.min(spawnX, GAME_WIDTH * 1.5);
+                spawnX = Math.max(spawnX, rocket.x + GAME_WIDTH * 0.3); // Ensure it's not too close behind
+                spawnX = Math.min(spawnX, GAME_WIDTH * 1.5); // Don't spawn it excessively far
+
                 powerUps.push(new PowerUp(spawnX, clampedY, 'fuel'));
-                canSpawnEmergencyBeans = false;
+                canSpawnEmergencyBeans = false; // Prevent immediate re-spawn
                 emergencyBeansCooldownTimer = EMERGENCY_BEANS_COOLDOWN_FRAMES;
             }
         }
+
         if (emergencyBeansCooldownTimer > 0) {
             emergencyBeansCooldownTimer--;
             if (emergencyBeansCooldownTimer <= 0) {
-                canSpawnEmergencyBeans = true;
+                canSpawnEmergencyBeans = true; // Cooldown finished
             }
         }
     }
-    function checkCollisions() { /* ... (same as previous version) ... */
+
+    function checkCollisions() {
         if (!rocket || gameState !== 'PLAYING') return;
+
+        // Ground collision
         if (rocket.y + rocket.height >= GAME_HEIGHT) {
-            rocket.y = GAME_HEIGHT - rocket.height; rocket.velocityY = 0;
-            if (!rocket.shieldActive) { gameOver(); return; }
-            else { rocket.velocityY = FLAP_STRENGTH * 0.3; playSound(sounds.hit); }
+            rocket.y = GAME_HEIGHT - rocket.height; // Settle on ground
+            rocket.velocityY = 0;
+            if (!rocket.shieldActive) {
+                gameOver();
+                return;
+            } else { // Shield active, bounce slightly
+                rocket.velocityY = FLAP_STRENGTH * 0.3; // Small bounce
+                playSound(sounds.hit); // Play hit sound even with shield
+            }
         }
+
+        // Pipe collisions
         for (let pipe of pipes) {
             const rocketRect = { x: rocket.x, y: rocket.y, width: rocket.width, height: rocket.height };
+
+            // Define effective hitbox for top pipe (inset for leniency)
             const topPipeEff = {
-                x: pipe.x + PIPE_HITBOX_INSET_X, y: pipe.topPipe.y,
-                width: pipe.width - 2 * PIPE_HITBOX_INSET_X, height: pipe.topPipe.height - PIPE_HITBOX_INSET_Y_GAPEDGE
+                x: pipe.x + PIPE_HITBOX_INSET_X,
+                y: pipe.topPipe.y,
+                width: pipe.width - 2 * PIPE_HITBOX_INSET_X,
+                height: pipe.topPipe.height - PIPE_HITBOX_INSET_Y_GAPEDGE
             };
             if (topPipeEff.width < 0) topPipeEff.width = 0; if (topPipeEff.height < 0) topPipeEff.height = 0;
+
             if (!rocket.shieldActive &&
-                rocketRect.x < topPipeEff.x + topPipeEff.width && rocketRect.x + rocketRect.width > topPipeEff.x &&
-                rocketRect.y < topPipeEff.y + topPipeEff.height && rocketRect.y + rocketRect.height > topPipeEff.y) {
-                gameOver(); return;
+                rocketRect.x < topPipeEff.x + topPipeEff.width &&
+                rocketRect.x + rocketRect.width > topPipeEff.x &&
+                rocketRect.y < topPipeEff.y + topPipeEff.height &&
+                rocketRect.y + rocketRect.height > topPipeEff.y) {
+                gameOver();
+                return;
             }
+
+            // Define effective hitbox for bottom pipe
             const bottomPipeEff = {
-                x: pipe.x + PIPE_HITBOX_INSET_X, y: pipe.bottomPipe.y + PIPE_HITBOX_INSET_Y_GAPEDGE,
-                width: pipe.width - 2 * PIPE_HITBOX_INSET_X, height: pipe.bottomPipe.height - PIPE_HITBOX_INSET_Y_GAPEDGE
+                x: pipe.x + PIPE_HITBOX_INSET_X,
+                y: pipe.bottomPipe.y + PIPE_HITBOX_INSET_Y_GAPEDGE,
+                width: pipe.width - 2 * PIPE_HITBOX_INSET_X,
+                height: pipe.bottomPipe.height - PIPE_HITBOX_INSET_Y_GAPEDGE
             };
             if (bottomPipeEff.width < 0) bottomPipeEff.width = 0; if (bottomPipeEff.height < 0) bottomPipeEff.height = 0;
+
             if (!rocket.shieldActive &&
-                rocketRect.x < bottomPipeEff.x + bottomPipeEff.width && rocketRect.x + rocketRect.width > bottomPipeEff.x &&
-                rocketRect.y < bottomPipeEff.y + bottomPipeEff.height && rocketRect.y + rocketRect.height > bottomPipeEff.y) {
-                gameOver(); return;
+                rocketRect.x < bottomPipeEff.x + bottomPipeEff.width &&
+                rocketRect.x + rocketRect.width > bottomPipeEff.x &&
+                rocketRect.y < bottomPipeEff.y + bottomPipeEff.height &&
+                rocketRect.y + rocketRect.height > bottomPipeEff.y) {
+                gameOver();
+                return;
             }
+
+            // Score increment
             if (!pipe.passed && pipe.x + pipe.width < rocket.x) {
-                pipe.passed = true; score++; playSound(sounds.score); gameSpeed += 0.02;
+                pipe.passed = true;
+                score++;
+                playSound(sounds.score);
+                gameSpeed += 0.02; // Slightly increase game speed with score
             }
         }
+
+        // Power-up collisions
         for (let pu of powerUps) {
             if (!pu.collected &&
-                rocket.x < pu.x + pu.size && rocket.x + rocket.width > pu.x &&
-                rocket.y < pu.y + pu.size && rocket.y + rocket.height > pu.y) {
+                rocket.x < pu.x + pu.size &&
+                rocket.x + rocket.width > pu.x &&
+                rocket.y < pu.y + pu.size &&
+                rocket.y + rocket.height > pu.y) {
                 pu.applyEffect(rocket);
             }
         }
     }
-    function updateUI(currentRocket) { /* ... (same as previous version) ... */
+
+    function updateUI(currentRocket) {
         if(scoreDisplay) scoreDisplay.textContent = `Score: ${score}`;
         if(highScoreDisplay) highScoreDisplay.textContent = `High Score: ${highScore}`;
-        let fuelSource = currentRocket || (rocket ? rocket : { fuel: MAX_FUEL });
+
+        let fuelSource = currentRocket || (rocket ? rocket : { fuel: MAX_FUEL }); // Get fuel from current rocket or default
         if (fuelSource && fuelBar) {
             const fuelPercentage = (fuelSource.fuel / MAX_FUEL) * 100;
             fuelBar.style.width = `${fuelPercentage}%`;
-            if (fuelPercentage < 20) fuelBar.style.backgroundColor = '#d63031';
-            else if (fuelPercentage < 50) fuelBar.style.backgroundColor = '#fdcb6e';
-            else fuelBar.style.backgroundColor = '#e17055';
-        } else if (fuelBar) {
+            if (fuelPercentage < LOW_FUEL_THRESHOLD_PERCENT) fuelBar.style.backgroundColor = '#d63031'; // Critical Red
+            else if (fuelPercentage < 50) fuelBar.style.backgroundColor = '#fdcb6e'; // Warning Yellow
+            else fuelBar.style.backgroundColor = '#e17055'; // Default Orange/Red (beans color)
+        } else if (fuelBar) { // Fallback if no rocket (e.g., on initGame before rocket exists)
              fuelBar.style.width = '100%';
              fuelBar.style.backgroundColor = '#e17055';
         }
     }
-    function updateGameObjects() { /* ... (same as previous version) ... */
+
+    function updateGameObjects() {
         if (gameState !== 'PLAYING') return;
         if (rocket) rocket.update();
         pipes.forEach(pipe => pipe.update());
         powerUps.forEach(pu => pu.update());
-        particles.forEach((p, index) => {
+        particles.forEach((p, index) => { // Update and remove dead particles
             p.update();
             if (p.life <= 0) particles.splice(index, 1);
         });
     }
-    function drawGameObjects() { /* ... (same as previous version, now Lali is drawn by Rocket.draw) ... */
+
+    function drawGameObjects() {
         if (!ctx) return;
-        ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+        ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT); // Clear canvas every frame
+
         pipes.forEach(pipe => pipe.draw());
         powerUps.forEach(pu => pu.draw());
-        if (gameState !== 'GAMEOVER' && rocket) rocket.draw(); // This will draw Lali
+        if (gameState !== 'GAMEOVER' && rocket) rocket.draw(); // Draw Lali (rocket)
         particles.forEach(p => p.draw());
     }
-    function gameLoop() { /* ... (same as previous version) ... */
+
+    function gameLoop() {
         if (gameState !== 'PLAYING') return;
+
         frame++;
         generatePipes();
-        if (frame % 75 === 0) generatePowerUps();
+        if (frame % 75 === 0) generatePowerUps(); // Generate powerups less frequently
         trySpawnEmergencyBeans();
+
         updateGameObjects();
-        checkCollisions();
-        drawGameObjects();
+        checkCollisions(); // Check collisions after updates
+        drawGameObjects(); // Draw after updates and collision checks
         updateUI(rocket);
+
         requestAnimationFrame(gameLoop);
     }
 
     // Event Listeners
     if (startButton) startButton.addEventListener('click', startGame);
     if (restartButton) restartButton.addEventListener('click', startGame);
+
     window.addEventListener('keydown', handleInput);
     if (canvas) {
         canvas.addEventListener('mousedown', handleInput);
+        // Use { passive: false } for touchstart to allow preventDefault()
         canvas.addEventListener('touchstart', handleInput, { passive: false });
     }
 
+    // Initialize the game
     initGame();
 });
