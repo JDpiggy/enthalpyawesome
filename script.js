@@ -66,8 +66,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const MIN_PIPE_SEGMENT_HEIGHT = 40; // Minimum visual height for a pipe segment
 
     // --- NEW: Hitbox Inset Constants for Pipes/Beakers ---
-    const PIPE_HITBOX_INSET_X = 25;       // Pixels to inset from left/right edges for collision
-    const PIPE_HITBOX_INSET_Y_GAPEDGE = 10; // Pixels to inset from the edge facing the gap
+    const PIPE_HITBOX_INSET_X = 1;       // Pixels to inset from left/right edges for collision
+    const PIPE_HITBOX_INSET_Y_GAPEDGE = 1; // Pixels to inset from the edge facing the gap
 
     // Power-up properties (same as before)
     const POWERUP_SIZE = 40;
