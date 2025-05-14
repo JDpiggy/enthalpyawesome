@@ -16,15 +16,15 @@
                 Fuel: <div id="fuelBar"></div>
             </div>
             <div id="startScreen">
-                <h1>Flappy Lali Fart</h1> 
-                
+                <h1>Flappy Lali Fart</h1>
                 <button id="startButton">Start Game</button>
-           
             </div>
             <div id="gameOverScreen" style="display: none;">
                 <h2>Game Over!</h2>
-                <p>Your Score: <span id="finalScore">0</span></p>
-                <p>New High Score!</p>
+                <div class="score-info-box">
+                    <p>Your Score: <span id="finalScore">0</span></p>
+                    <p id="newHighScoreTextGameOver">NEW HIGH SCORE!</p>
+                </div>
                 <button id="restartButton">Play Again</button>
             </div>
         </div>
