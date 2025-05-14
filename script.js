@@ -66,8 +66,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const MIN_PIPE_SEGMENT_HEIGHT = 40; // Minimum visual height for a pipe segment
 
     // --- NEW: Hitbox Inset Constants for Pipes/Beakers ---
-    const PIPE_HITBOX_INSET_X = 1;       // Pixels to inset from left/right edges for collision
-    const PIPE_HITBOX_INSET_Y_GAPEDGE = 1; // Pixels to inset from the edge facing the gap
+    const PIPE_HITBOX_INSET_X = 25;       // Pixels to inset from left/right edges for collision
+    const PIPE_HITBOX_INSET_Y_GAPEDGE = 10; // Pixels to inset from the edge facing the gap
 
     // Power-up properties (same as before)
     const POWERUP_SIZE = 40;
@@ -315,12 +315,11 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             // --- COLLISION WITH TOP PIPE (Beaker) ---
+            // --- NEW: Hitbox Inset Constants for Pipes/Beakers ---
+
             const topPipeEff = {
-                x: pipe.x + PIPE_HITBOX_INSET_X,
-                y: pipe.topPipe.y, // Starts at 0
-                width: pipe.width - 2 * PIPE_HITBOX_INSET_X,
-                // Collidable part of top pipe ends slightly above its visual bottom edge
-                height: pipe.topPipe.height - PIPE_HITBOX_INSET_Y_GAPEDGE
+                const PIPE_HITBOX_INSET_X = 35;       // INCREASED (was 25). Shrinks width by 70px total.
+const PIPE_HITBOX_INSET_Y_GAPEDGE = 25; // INCREASED (was 10). Shrinks height from the gap-facing edge.
             };
             if (topPipeEff.width < 0) topPipeEff.width = 0;
             if (topPipeEff.height < 0) topPipeEff.height = 0;
