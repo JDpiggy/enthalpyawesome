@@ -1,13 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
-
-                <div id="startScreen">
-                <h1>Flappy Lali Fart</h1> <!-- Or your original title -->
-                <p>Press SPACE or TAP to Fart</p>
-                <p>Collect Fart Canisters!</p>
-                <button id="startButton">Start Game</button>
-                <!-- <button id="toggleSoundButton">Sound: ON</button>  REMOVE THIS LINE -->
-
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Lali Fart</title> {/* Updated Title */}
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="game-container">
@@ -19,16 +16,16 @@
                 Fuel: <div id="fuelBar"></div>
             </div>
             <div id="startScreen">
-                <h1>Flappy Lali Fart</h1>
-                <p>Press SPACE or TAP to Fart</p>
-                <p>Collect Fart Canisters!</p>
+                <h1>Flappy Lali Fart</h1> {/* Updated Title */}
+                <p>Press SPACE or TAP to Fart</p> {/* Updated Instruction */}
+                <p>Collect Fart Canisters!</p> {/* Updated Instruction */}
                 <button id="startButton">Start Game</button>
-                <button id="toggleSoundButton">Sound: ON</button>
+                {/* Sound button removed as per previous request */}
             </div>
             <div id="gameOverScreen" style="display: none;">
                 <h2>Game Over!</h2>
                 <p>Your Score: <span id="finalScore">0</span></p>
-                <p>New High Score!</p>
+                <p>New High Score!</p> {/* This text is shown/hidden via JS */}
                 <button id="restartButton">Play Again</button>
             </div>
         </div>
