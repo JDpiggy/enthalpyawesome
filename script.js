@@ -86,8 +86,7 @@ const FUEL_CONSUMPTION = 2.5;
 const FUEL_REGEN_RATE = 0;
 
 // Pipe properties
-// If ROCKET_HEIGHT changed significantly, PIPE_GAP might need adjustment
-const PIPE_GAP = 260 + (ROCKET_HEIGHT - 120)
+
 
     // Pipe properties
     const PIPE_WIDTH = 120;
