@@ -23,9 +23,44 @@ document.addEventListener('DOMContentLoaded', () => {
     let score, highScore, frame, gameSpeed, gameState;
     let soundEnabled = true;
 
-    // Asset paths (replace with actual paths if you have images/sounds)
-    // For simplicity, we'll draw shapes. If using images:
-    // const rocketImg = new Image(); rocketImg.src = 'assets/rocket.png';
+    // --- ASSET LOADING ---
+    const rocketImg = new Image();
+    // IMPORTANT: Verify this path is correct relative to your index.html file
+    // Based on your screenshot "advancedflappy / assets / tiles / pixil-frame-0.png"
+    // If index.html is in the 'advancedflappy' folder, this path should be correct.
+    rocketImg.src = 'assets/tiles/pixil-frame-0.png';
+    rocketImg.isReady = false; // Custom flag to check if loaded
+
+    let assetsToLoad = 1; // Number of critical assets (just the rocket image for now)
+    let assetsLoaded = 0;
+
+    function assetLoadManager() {
+        assetsLoaded++;
+        if (assetsLoaded >= assetsToLoad) {
+            // All critical assets are accounted for (loaded or failed)
+            if (startButton) {
+                startButton.disabled = false;
+                startButton.textContent = "Start Game";
+            }
+            console.log("Asset loading phase complete. Game ready to start.");
+            // If the game needs an immediate redraw after assets load, trigger it here.
+            // For this game, enabling the start button is sufficient.
+        }
+    }
+
+    rocketImg.onload = () => {
+        console.log("Rocket image loaded successfully: " + rocketImg.src);
+        rocketImg.isReady = true;
+        assetLoadManager();
+    };
+    rocketImg.onerror = () => {
+        console.error("Failed to load rocket image: " + rocketImg.src + ". Using fallback shape.");
+        rocketImg.isReady = false; // Ensure it's false
+        assetLoadManager(); // Still count as "load attempt finished"
+    };
+    // --- END ASSET LOADING ---
+
+
     // const shieldImg = new Image(); shieldImg.src = 'assets/shield_icon.png';
     // const fuelCanImg = new Image(); fuelCanImg.src = 'assets/fuel_icon.png';
 
@@ -36,32 +71,25 @@ document.addEventListener('DOMContentLoaded', () => {
         powerup: new Audio(),// 'assets/pickup.wav'
         fuelEmpty: new Audio() // 'assets/fuel_empty.wav'
     };
-    // Note: You'll need to create or find these sound files.
-    // For now, sounds won't play without src.
-    // Example: sounds.flap.src = 'path/to/your/flap_sound.wav';
 
-
-    // Rocket properties
     const ROCKET_WIDTH = 30;
-    const ROCKET_HEIGHT = 50;
+    const ROCKET_HEIGHT = 50; // Image will be scaled to this
     const GRAVITY = 0.3;
     const FLAP_STRENGTH = -7;
     const MAX_FUEL = 100;
-    const FUEL_CONSUMPTION = 1.5; // Per flap
-    const FUEL_REGEN_RATE = 0.05; // Passive regen
+    const FUEL_CONSUMPTION = 1.5;
+    const FUEL_REGEN_RATE = 0.05;
 
-    // Pipe properties
     const PIPE_WIDTH = 70;
     const PIPE_GAP = 150;
-    const PIPE_SPACING = 220; // Horizontal distance between pipe pairs
+    const PIPE_SPACING = 220;
     const PIPE_SPEED_INITIAL = 2;
-    const PIPE_VERTICAL_MOVEMENT_MAX = 50; // Max up/down movement
+    const PIPE_VERTICAL_MOVEMENT_MAX = 50;
     const PIPE_VERTICAL_SPEED = 0.5;
 
-    // Power-up properties
     const POWERUP_SIZE = 25;
-    const POWERUP_SPAWN_CHANCE = 0.005; // Chance per frame to spawn (when conditions met)
-    const SHIELD_DURATION = 300; // frames (5 seconds at 60fps)
+    const POWERUP_SPAWN_CHANCE = 0.005;
+    const SHIELD_DURATION = 300;
 
     class Rocket {
         constructor() {
@@ -81,7 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.fuel -= FUEL_CONSUMPTION;
                 if (this.fuel < 0) this.fuel = 0;
                 playSound(sounds.flap);
-                // Create thrust particles
                 for (let i = 0; i < 5; i++) {
                     particles.push(new Particle(this.x + this.width / 2, this.y + this.height, 'thrust'));
                 }
@@ -94,13 +121,11 @@ document.addEventListener('DOMContentLoaded', () => {
             this.velocityY += GRAVITY;
             this.y += this.velocityY;
 
-            // Passive fuel regeneration
             if (this.fuel < MAX_FUEL) {
                 this.fuel += FUEL_REGEN_RATE;
                 if (this.fuel > MAX_FUEL) this.fuel = MAX_FUEL;
             }
 
-            // Shield timer
             if (this.shieldActive) {
                 this.shieldTimer--;
                 if (this.shieldTimer <= 0) {
@@ -108,23 +133,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Prevent going off top screen
             if (this.y < 0) {
                 this.y = 0;
                 this.velocityY = 0;
             }
-            // Game over if hits bottom (handled in main loop for collision)
         }
 
         draw() {
-            ctx.fillStyle = this.shieldActive ? 'rgba(0, 255, 255, 0.7)' : 'red';
-            // Simple rocket shape
-            ctx.beginPath();
-            ctx.moveTo(this.x, this.y + this.height);
-            ctx.lineTo(this.x + this.width / 2, this.y);
-            ctx.lineTo(this.x + this.width, this.y + this.height);
-            ctx.closePath();
-            ctx.fill();
+            // --- MODIFIED ROCKET DRAWING ---
+            if (rocketImg.isReady) {
+                // Draw the loaded image
+                ctx.drawImage(rocketImg, this.x, this.y, this.width, this.height);
+            } else {
+                // Fallback: Draw the original red triangle if image isn't ready or failed
+                ctx.fillStyle = 'red'; // Original fallback color
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y + this.height);
+                ctx.lineTo(this.x + this.width / 2, this.y);
+                ctx.lineTo(this.x + this.width, this.y + this.height);
+                ctx.closePath();
+                ctx.fill();
+            }
+            // --- END MODIFIED ROCKET DRAWING ---
 
             if (this.shieldActive) {
                 ctx.strokeStyle = 'cyan';
@@ -141,13 +171,13 @@ document.addEventListener('DOMContentLoaded', () => {
             this.x = x;
             this.width = PIPE_WIDTH;
             this.isTopPipe = isTopPipe;
-            this.gapY = gapY; // Center of the gap
+            this.gapY = gapY;
             this.height = isTopPipe ? gapY - PIPE_GAP / 2 : GAME_HEIGHT - (gapY + PIPE_GAP / 2);
             this.y = isTopPipe ? 0 : gapY + PIPE_GAP / 2;
             this.passed = false;
             this.movesVertically = movesVertically;
-            this.verticalDirection = 1; // 1 for down, -1 for up
-            this.initialY = this.y; // For moving pipes
+            this.verticalDirection = 1;
+            this.initialY = this.y;
             this.initialHeight = this.height;
         }
 
@@ -159,7 +189,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     this.height += PIPE_VERTICAL_SPEED * this.verticalDirection;
                     if (this.height > this.initialHeight + PIPE_VERTICAL_MOVEMENT_MAX || this.height < this.initialHeight - PIPE_VERTICAL_MOVEMENT_MAX) {
                         this.verticalDirection *= -1;
-                         // Clamp to prevent extreme movement
                         this.height = Math.max(50, Math.min(this.gapY - PIPE_GAP / 2 - 20, this.height));
                     }
                 } else {
@@ -169,7 +198,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (this.y > this.initialY + PIPE_VERTICAL_MOVEMENT_MAX || this.y < this.initialY - PIPE_VERTICAL_MOVEMENT_MAX) {
                         this.verticalDirection *= -1;
-                        // Clamp
                         this.y = Math.max(this.gapY + PIPE_GAP / 2 + 20, Math.min(GAME_HEIGHT - 50, this.y));
                         this.height = GAME_HEIGHT - this.y;
                     }
@@ -180,7 +208,6 @@ document.addEventListener('DOMContentLoaded', () => {
         draw() {
             ctx.fillStyle = 'green';
             ctx.fillRect(this.x, this.y, this.width, this.height);
-            // Add some detail to pipes
             ctx.fillStyle = '#58a041';
             ctx.fillRect(this.x + 5, this.y + 5, this.width - 10, this.height - 10);
         }
@@ -191,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.x = x;
             this.y = y;
             this.size = POWERUP_SIZE;
-            this.type = type; // 'shield' or 'fuel'
+            this.type = type;
             this.collected = false;
         }
 
@@ -204,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.beginPath();
             ctx.arc(this.x + this.size / 2, this.y + this.size / 2, this.size / 2, 0, Math.PI * 2);
             if (this.type === 'shield') {
-                ctx.fillStyle = 'rgba(0, 200, 255, 0.8)'; // Cyan
+                ctx.fillStyle = 'rgba(0, 200, 255, 0.8)';
                 ctx.fill();
                 ctx.fillStyle = 'white';
                 ctx.textAlign = 'center';
@@ -212,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.font = 'bold 12px Arial';
                 ctx.fillText('S', this.x + this.size / 2, this.y + this.size / 2 + 1);
             } else if (this.type === 'fuel') {
-                ctx.fillStyle = 'rgba(255, 165, 0, 0.8)'; // Orange
+                ctx.fillStyle = 'rgba(255, 165, 0, 0.8)';
                 ctx.fill();
                 ctx.fillStyle = 'white';
                 ctx.textAlign = 'center';
@@ -231,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 rocket.fuel = MAX_FUEL;
             }
             this.collected = true;
-            for (let i = 0; i < 10; i++) { // Collection particles
+            for (let i = 0; i < 10; i++) {
                 particles.push(new Particle(this.x + this.size/2, this.y + this.size/2, 'collect'));
             }
         }
@@ -241,19 +268,19 @@ document.addEventListener('DOMContentLoaded', () => {
         constructor(x, y, type) {
             this.x = x;
             this.y = y;
-            this.type = type; // 'thrust', 'explosion', 'collect'
+            this.type = type;
             this.size = Math.random() * 5 + 2;
-            this.life = 30 + Math.random() * 30; // frames
+            this.life = 30 + Math.random() * 30;
             if (type === 'thrust') {
                 this.color = `rgba(255, ${Math.floor(Math.random() * 155) + 100}, 0, ${Math.random() * 0.5 + 0.5})`;
                 this.velocityX = (Math.random() - 0.5) * 2;
-                this.velocityY = Math.random() * 2 + 1; // Downwards
+                this.velocityY = Math.random() * 2 + 1;
             } else if (type === 'explosion') {
                 this.color = `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 100)}, 0, ${Math.random() * 0.5 + 0.5})`;
                 this.velocityX = (Math.random() - 0.5) * 10;
                 this.velocityY = (Math.random() - 0.5) * 10;
             } else if (type === 'collect') {
-                this.color = `rgba(255, 255, 0, ${Math.random() * 0.5 + 0.5})`; // Yellowish
+                this.color = `rgba(255, 255, 0, ${Math.random() * 0.5 + 0.5})`;
                 this.velocityX = (Math.random() - 0.5) * 3;
                 this.velocityY = (Math.random() - 0.5) * 3;
             }
@@ -262,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
         update() {
             this.x += this.velocityX;
             this.y += this.velocityY;
-            if (this.type === 'thrust') this.velocityY += 0.05; // Slight gravity
+            if (this.type === 'thrust') this.velocityY += 0.05;
             this.life--;
         }
 
@@ -275,7 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function playSound(sound) {
-        if (soundEnabled && sound.src) { // Check if src is set
+        if (soundEnabled && sound.src) {
             sound.currentTime = 0;
             sound.play().catch(e => console.warn("Audio play failed:", e));
         }
@@ -289,28 +316,44 @@ document.addEventListener('DOMContentLoaded', () => {
         score = 0;
         frame = 0;
         gameSpeed = PIPE_SPEED_INITIAL;
-        gameState = 'START'; // START, PLAYING, GAMEOVER
+        gameState = 'START';
         loadHighScore();
         updateUI();
         startScreen.style.display = 'flex';
         gameOverScreen.style.display = 'none';
+
+        // --- HANDLE START BUTTON STATE BASED ON ASSET LOADING ---
+        if (startButton) {
+            if (assetsLoaded < assetsToLoad) {
+                startButton.disabled = true;
+                startButton.textContent = "Loading Assets...";
+            } else {
+                startButton.disabled = false;
+                startButton.textContent = "Start Game";
+            }
+        }
+        // --- END HANDLE START BUTTON ---
     }
 
     function startGame() {
         gameState = 'PLAYING';
         startScreen.style.display = 'none';
-        rocket.fuel = MAX_FUEL; // Reset fuel on start
+        rocket.fuel = MAX_FUEL;
+        frame = 0; // Reset frame for consistent pipe/powerup generation
+        pipes = []; // Clear any pre-existing pipes from a previous game over screen
+        powerUps = []; // Clear powerups
+        particles = []; // Clear particles
+        gameSpeed = PIPE_SPEED_INITIAL; // Reset game speed
         gameLoop();
     }
 
     function gameOver() {
         playSound(sounds.hit);
         gameState = 'GAMEOVER';
-        // Explosion particles
         for (let i = 0; i < 30; i++) {
             particles.push(new Particle(rocket.x + rocket.width / 2, rocket.y + rocket.height / 2, 'explosion'));
         }
-        rocket.y = -1000; // Move rocket off-screen
+        if(rocket) rocket.y = -1000; // Move rocket off-screen
 
         if (score > highScore) {
             highScore = score;
@@ -333,7 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleInput(e) {
         if (e.code === 'Space' || e.type === 'mousedown' || e.type === 'touchstart') {
-            e.preventDefault(); // Prevent screen scrolling on touch
+            e.preventDefault();
             if (gameState === 'PLAYING') {
                 rocket.flap();
             }
@@ -341,49 +384,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function generatePipes() {
-        // Generate pipes
         if (frame % Math.floor(PIPE_SPACING / gameSpeed) === 0) {
-            const gapY = Math.random() * (GAME_HEIGHT - PIPE_GAP - 100) + (PIPE_GAP / 2) + 50; // 50px margin top/bottom
-            const movesVertically = Math.random() < 0.3; // 30% chance pipes move
+            const gapY = Math.random() * (GAME_HEIGHT - PIPE_GAP - 100) + (PIPE_GAP / 2) + 50;
+            const movesVertically = Math.random() < 0.3;
             pipes.push(new Pipe(GAME_WIDTH, true, gapY, movesVertically));
             pipes.push(new Pipe(GAME_WIDTH, false, gapY, movesVertically));
 
-            // Chance to spawn a power-up between pipes
-            if (Math.random() < POWERUP_SPAWN_CHANCE * 50 ) { // Increased chance when pipe spawns
+            if (Math.random() < POWERUP_SPAWN_CHANCE * 50 ) {
                 const powerUpType = Math.random() < 0.5 ? 'shield' : 'fuel';
                 const powerUpY = gapY - POWERUP_SIZE / 2 + (Math.random() - 0.5) * (PIPE_GAP / 3);
                 powerUps.push(new PowerUp(GAME_WIDTH + PIPE_WIDTH / 2 - POWERUP_SIZE / 2, powerUpY, powerUpType));
             }
         }
-
-        // Remove off-screen pipes
         pipes = pipes.filter(pipe => pipe.x + pipe.width > 0);
     }
 
     function generatePowerUps() {
-         // Randomly spawn power-ups (less frequent than with pipes)
-        if (Math.random() < POWERUP_SPAWN_CHANCE && powerUps.length < 2) { // Max 2 powerups on screen
+        if (Math.random() < POWERUP_SPAWN_CHANCE && powerUps.length < 2) {
             const powerUpType = Math.random() < 0.5 ? 'shield' : 'fuel';
-            const powerUpY = Math.random() * (GAME_HEIGHT - POWERUP_SIZE - 100) + 50; // Random Y, 50px margin
-            const powerUpX = GAME_WIDTH + Math.random() * 100; // Spawn slightly off-screen
+            const powerUpY = Math.random() * (GAME_HEIGHT - POWERUP_SIZE - 100) + 50;
+            const powerUpX = GAME_WIDTH + Math.random() * 100;
             powerUps.push(new PowerUp(powerUpX, powerUpY, powerUpType));
         }
         powerUps = powerUps.filter(pu => pu.x + pu.size > 0 && !pu.collected);
     }
 
     function checkCollisions() {
-        // Rocket vs. Ground
+        if (!rocket) return; // Rocket might not be initialized if game over very fast
+
         if (rocket.y + rocket.height >= GAME_HEIGHT) {
             rocket.y = GAME_HEIGHT - rocket.height;
             rocket.velocityY = 0;
             if (!rocket.shieldActive) gameOver();
-            else { // Bounce slightly if shielded and hits ground
+            else {
                 rocket.velocityY = FLAP_STRENGTH * 0.5;
-                playSound(sounds.hit); // Still make a sound
+                playSound(sounds.hit);
             }
         }
 
-        // Rocket vs. Pipes
         for (let pipe of pipes) {
             if (!rocket.shieldActive &&
                 rocket.x < pipe.x + pipe.width &&
@@ -393,21 +431,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 gameOver();
                 return;
             }
-            // Score
             if (!pipe.passed && pipe.x + pipe.width < rocket.x && pipe.isTopPipe) {
                 pipe.passed = true;
-                // Find its pair and mark as passed too to avoid double scoring
                 const bottomPipe = pipes.find(p => p.gapY === pipe.gapY && !p.isTopPipe && !p.passed);
                 if(bottomPipe) bottomPipe.passed = true;
-
                 score++;
                 playSound(sounds.score);
-                // Increase speed slightly
                 gameSpeed += 0.05;
             }
         }
 
-        // Rocket vs. PowerUps
         for (let pu of powerUps) {
             if (!pu.collected &&
                 rocket.x < pu.x + pu.size &&
@@ -422,12 +455,18 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateUI() {
         scoreDisplay.textContent = `Score: ${score}`;
         highScoreDisplay.textContent = `High Score: ${highScore}`;
-        const fuelPercentage = (rocket.fuel / MAX_FUEL) * 100;
-        fuelBar.style.width = `${fuelPercentage}%`;
-        fuelBar.style.backgroundColor = fuelPercentage < 20 ? 'red' : (fuelPercentage < 50 ? 'yellow' : 'orange');
+        if (rocket) { // Ensure rocket exists before trying to access fuel
+            const fuelPercentage = (rocket.fuel / MAX_FUEL) * 100;
+            fuelBar.style.width = `${fuelPercentage}%`;
+            fuelBar.style.backgroundColor = fuelPercentage < 20 ? 'red' : (fuelPercentage < 50 ? 'yellow' : 'orange');
+        } else { // Default fuel bar state if no rocket (e.g. before game starts)
+            fuelBar.style.width = '100%';
+             fuelBar.style.backgroundColor = 'orange';
+        }
     }
 
     function updateGameObjects() {
+        if (!rocket) return;
         rocket.update();
         pipes.forEach(pipe => pipe.update());
         powerUps.forEach(pu => pu.update());
@@ -438,19 +477,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function drawGameObjects() {
-        // Simple parallax background (optional)
-        ctx.fillStyle = '#70c5ce'; // Sky
+        ctx.fillStyle = '#70c5ce';
         ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
-        // Far background elements (e.g., distant clouds/stars)
-        // Could be drawn here, moving slower than gameSpeed
-
-        // Near background elements (e.g., hills)
-        // Could be drawn here, moving slightly slower than gameSpeed
 
         pipes.forEach(pipe => pipe.draw());
         powerUps.forEach(pu => pu.draw());
-        if (gameState !== 'GAMEOVER') rocket.draw(); // Don't draw rocket if exploded
+        if (gameState !== 'GAMEOVER' && rocket) rocket.draw(); // Don't draw rocket if exploded
         particles.forEach(p => p.draw());
     }
 
@@ -458,13 +490,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gameState !== 'PLAYING') return;
 
         ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
         frame++;
         generatePipes();
-        generatePowerUps(); // Call this less frequently if too many powerups
+        generatePowerUps();
 
         updateGameObjects();
-        checkCollisions(); // Check collisions after updates
+        checkCollisions(); 
         
         drawGameObjects();
         updateUI();
@@ -474,24 +505,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Event Listeners
     startButton.addEventListener('click', startGame);
     restartButton.addEventListener('click', () => {
-        initGame(); // Re-initialize all variables
-        startGame();  // Then start
+        initGame(); 
+        startGame(); 
     });
     
     window.addEventListener('keydown', handleInput);
     canvas.addEventListener('mousedown', handleInput);
-    // For touch devices
     canvas.addEventListener('touchstart', handleInput, { passive: false });
-
 
     toggleSoundButton.addEventListener('click', () => {
         soundEnabled = !soundEnabled;
         toggleSoundButton.textContent = `Sound: ${soundEnabled ? 'ON' : 'OFF'}`;
     });
 
-    // Initial setup
     initGame();
 });
