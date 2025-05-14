@@ -26,11 +26,15 @@ document.addEventListener('DOMContentLoaded', () => {
     rocketImg.src = 'assets/tiles/pixil-frame-0.png';
     rocketImg.isReady = false;
 
-    const pipeImg = new Image();
-    pipeImg.src = 'assets/tiles/beaker-removebg-preview.png'; // This is your graduated cylinder image
+    const pipeImg = new Image(); 
+    pipeImg.src = 'assets/tiles/beaker-removebg-preview.png'; // Graduated Cylinder image
     pipeImg.isReady = false;
 
-    let assetsToLoad = 2;
+    const fuelPowerUpImg = new Image(); 
+    fuelPowerUpImg.src = 'assets/tiles/beans-removebg-preview.png'; // Beans image
+    fuelPowerUpImg.isReady = false;
+
+    let assetsToLoad = 3; 
     let assetsLoaded = 0;
 
     function assetLoadManager() {
@@ -51,6 +55,8 @@ document.addEventListener('DOMContentLoaded', () => {
     rocketImg.onerror = () => { console.error("Failed to load rocket image."); rocketImg.isReady = false; assetLoadManager(); };
     pipeImg.onload = () => { pipeImg.isReady = true; console.log("Pipe/Cylinder image loaded."); assetLoadManager(); };
     pipeImg.onerror = () => { console.error("Failed to load pipe/cylinder image: " + pipeImg.src); pipeImg.isReady = false; assetLoadManager(); };
+    fuelPowerUpImg.onload = () => { fuelPowerUpImg.isReady = true; console.log("Fuel/Beans power-up image loaded."); assetLoadManager(); };
+    fuelPowerUpImg.onerror = () => { console.error("Failed to load fuel/beans power-up image: " + fuelPowerUpImg.src); fuelPowerUpImg.isReady = false; assetLoadManager(); };
     // --- END ASSET LOADING ---
 
     const sounds = {
@@ -65,10 +71,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const FLAP_STRENGTH = -7.2;
     const MAX_FUEL = 100;
     const FUEL_CONSUMPTION = 2.5;
-    const FUEL_REGEN_RATE = 0.05;
+    const FUEL_REGEN_RATE = 0; // No passive fuel regeneration
 
     // Pipe (Graduated Cylinder) properties
-    const PIPE_WIDTH = 120; // Visual width the cylinder image is drawn at
+    const PIPE_WIDTH = 120;
     const PIPE_GAP = 260;
     const PIPE_SPACING = 450;
     const PIPE_SPEED_INITIAL = 2.0;
@@ -76,16 +82,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const PIPE_VERTICAL_SPEED = 0.45;
     const MIN_PIPE_SEGMENT_HEIGHT = 40;
 
-    // --- ADJUSTED Hitbox Inset Constants for Pipes/Cylinders ---
-    const PIPE_HITBOX_INSET_X = 40;       // Makes collidable width ~40px if drawn at 120px.
-    const PIPE_HITBOX_INSET_Y_GAPEDGE = 15; // Inset from gap edge (mouth/base).
+    const PIPE_HITBOX_INSET_X = 40;
+    const PIPE_HITBOX_INSET_Y_GAPEDGE = 15;
 
     // Power-up properties
-    const POWERUP_SIZE = 40;
-    const POWERUP_SPAWN_CHANCE = 0.0055;
+    const POWERUP_SIZE = 50;
+    const POWERUP_SPAWN_CHANCE = 0.0055; // General random spawn chance
     const SHIELD_DURATION = 540;
 
-    class Rocket { /* ... (same as previous complete version) ... */
+    // --- NEW: Low Fuel Assistance ---
+    const LOW_FUEL_THRESHOLD_PERCENT = 20; // Spawn beans if fuel is below 20%
+    let canSpawnEmergencyBeans = true; 
+    const EMERGENCY_BEANS_COOLDOWN_FRAMES = 180; // 3 seconds at 60fps
+    let emergencyBeansCooldownTimer = 0;
+
+
+    class Rocket {
         constructor() {
             this.x = GAME_WIDTH / 6;
             this.y = GAME_HEIGHT / 2 - ROCKET_HEIGHT / 2;
@@ -113,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.velocityY += GRAVITY;
             this.y += this.velocityY;
 
-            if (this.fuel < MAX_FUEL) {
+            if (this.fuel < MAX_FUEL) { // Passive regen (currently off as FUEL_REGEN_RATE is 0)
                 this.fuel += FUEL_REGEN_RATE;
                 if (this.fuel > MAX_FUEL) this.fuel = MAX_FUEL;
             }
@@ -149,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    class Pipe { /* ... (same as previous complete version, uses new inset constants) ... */
+    class Pipe {
         constructor(x, initialGapY, movesVertically) {
             this.x = x;
             this.width = PIPE_WIDTH;
@@ -174,9 +186,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (this.bottomPipe.height < MIN_PIPE_SEGMENT_HEIGHT) {
                 this.bottomPipe.height = MIN_PIPE_SEGMENT_HEIGHT;
             }
-            
+
             if(this.topPipe.y + this.topPipe.height > this.bottomPipe.y){
-                this.topPipe.height = this.currentGapY - PIPE_GAP / 2;
+                this.topPipe.height = this.currentGapY - PIPE_GAP / 2; // Prioritize gap
                 this.bottomPipe.y = this.currentGapY + PIPE_GAP / 2;
                 this.bottomPipe.height = GAME_HEIGHT - this.bottomPipe.y;
             }
@@ -222,30 +234,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    class PowerUp { /* ... (same as previous complete version) ... */
+    class PowerUp {
         constructor(x, y, type) {
             this.x = x; this.y = y; this.size = POWERUP_SIZE; this.type = type; this.collected = false;
         }
         update() { this.x -= gameSpeed; }
         draw() {
             if (this.collected) return;
-            ctx.beginPath();
-            ctx.arc(this.x + this.size / 2, this.y + this.size / 2, this.size / 2, 0, Math.PI * 2);
-            let symbol = '';
-            let symbolColor = '#1e272e';
-            let powerUpFont = `bold ${this.size * 0.7}px 'Bangers', cursive`;
 
             if (this.type === 'shield') {
-                ctx.fillStyle = 'rgba(0, 220, 255, 0.9)'; symbol = 'S';
+                ctx.beginPath();
+                ctx.arc(this.x + this.size / 2, this.y + this.size / 2, this.size / 2, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0, 220, 255, 0.9)';
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(20,20,20,0.7)'; ctx.lineWidth = 2; ctx.stroke();
+                const symbol = 'S';
+                const symbolColor = '#1e272e';
+                const powerUpFont = `bold ${this.size * 0.7}px 'Bangers', cursive`;
+                ctx.fillStyle = symbolColor; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.font = powerUpFont;
+                ctx.fillText(symbol, this.x + this.size / 2, this.y + this.size / 2 + this.size * 0.08);
             } else if (this.type === 'fuel') {
-                ctx.fillStyle = 'rgba(255, 190, 0, 0.9)'; symbol = 'F';
+                if (fuelPowerUpImg.isReady) {
+                    ctx.drawImage(fuelPowerUpImg, this.x, this.y, this.size, this.size);
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(this.x + this.size / 2, this.y + this.size / 2, this.size / 2, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(255, 190, 0, 0.9)';
+                    ctx.fill();
+                    const symbol = 'F';
+                    const symbolColor = '#1e272e';
+                    const powerUpFont = `bold ${this.size * 0.7}px 'Bangers', cursive`;
+                    ctx.fillStyle = symbolColor; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.font = powerUpFont;
+                    ctx.fillText(symbol, this.x + this.size / 2, this.y + this.size / 2 + this.size * 0.08);
+                }
             }
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(20,20,20,0.7)'; ctx.lineWidth = 2; ctx.stroke();
-
-            ctx.fillStyle = symbolColor; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.font = powerUpFont;
-            ctx.fillText(symbol, this.x + this.size / 2, this.y + this.size / 2 + this.size * 0.08);
         }
         applyEffect(rocketInstance) {
             playSound(sounds.powerup);
@@ -261,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    class Particle { /* ... (same as previous complete version) ... */
+    class Particle {
         constructor(x, y, type) {
             this.x = x; this.y = y; this.type = type;
             this.size = Math.random() * (type === 'explosion' ? 10 : 7) + 3;
@@ -279,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.velocityY = Math.sin(angle) * speed;
                 if (type === 'explosion') {
                     this.color = `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 120)}, 0, 0.8)`;
-                } else { 
+                } else {
                     this.color = `rgba(255, 230, ${Math.random() > 0.5 ? 50 : 150}, 0.8)`;
                 }
             }
@@ -303,14 +327,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function playSound(sound) { /* ... (same, sound effectively off) ... */
-        if (false && sound.src && sound.readyState >= 2) {
+    function playSound(sound) {
+        if (false && sound.src && sound.readyState >= 2) { // Sound effectively disabled
             sound.currentTime = 0;
             sound.play().catch(e => console.warn("Audio play failed:", e));
         }
     }
-    function initGame() { /* ... (same as previous complete version) ... */
-        rocket = null; 
+
+    function initGame() {
+        rocket = null;
         pipes = []; powerUps = []; particles = [];
         score = 0; frame = 0; gameSpeed = PIPE_SPEED_INITIAL;
         gameState = 'START';
@@ -326,33 +351,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 startButton.disabled = false; startButton.textContent = "Start Game";
             }
         }
-        updateUI({ fuel: MAX_FUEL }); 
+        updateUI({ fuel: MAX_FUEL }); // Pass default fuel for initial UI
 
         if (ctx) {
              ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
         }
+        canSpawnEmergencyBeans = true; // Reset emergency beans flag
+        emergencyBeansCooldownTimer = 0;
     }
-    function startGame() { /* ... (same as previous complete version) ... */
+
+    function startGame() {
         gameState = 'PLAYING';
         startScreen.style.display = 'none';
         gameOverScreen.style.display = 'none';
 
-        rocket = new Rocket(); 
+        rocket = new Rocket();
 
         pipes = []; powerUps = []; particles = [];
-        score = 0; frame = 0; 
+        score = 0; frame = 0;
         gameSpeed = PIPE_SPEED_INITIAL;
+
+        canSpawnEmergencyBeans = true; // Reset for new game
+        emergencyBeansCooldownTimer = 0;
 
         updateUI(rocket);
         gameLoop();
     }
-    function gameOver() { /* ... (same as previous complete version) ... */
+
+    function gameOver() {
         playSound(sounds.hit); gameState = 'GAMEOVER';
         if (rocket) {
             for (let i = 0; i < 50; i++) {
                 particles.push(new Particle(rocket.x + rocket.width / 2, rocket.y + rocket.height / 2, 'explosion'));
             }
-            rocket.y = -2000; 
+            rocket.y = -2000;
         }
 
         if (score > highScore) {
@@ -361,41 +393,36 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             if(newHighScoreText) newHighScoreText.style.display = 'none';
         }
-        if(finalScoreDisplay) finalScoreDisplay.textContent = score; 
+        if(finalScoreDisplay) finalScoreDisplay.textContent = score;
         if(gameOverScreen) gameOverScreen.style.display = 'flex';
         updateUI(rocket);
     }
-    function loadHighScore() { /* ... (same as previous complete version) ... */
-        highScore = parseInt(localStorage.getItem('flappyLaliFartV1')) || 0;
-    }
-    function saveHighScore() { /* ... (same as previous complete version) ... */
-        localStorage.setItem('flappyLaliFartV1', highScore);
-    }
-    function handleInput(e) { /* ... (same as previous complete version) ... */
+
+    function loadHighScore() { highScore = parseInt(localStorage.getItem('flappyLaliFartV2')) || 0; } // Key changed for safety
+    function saveHighScore() { localStorage.setItem('flappyLaliFartV2', highScore); }
+
+    function handleInput(e) {
         if (e.code === 'Space' || e.type === 'mousedown' || e.type === 'touchstart') {
             e.preventDefault();
             if (gameState === 'PLAYING' && rocket) { rocket.flap(); }
         }
     }
-    function generatePipes() { /* ... (same as previous complete version) ... */
+
+    function generatePipes() {
         if (frame % Math.floor(PIPE_SPACING / gameSpeed) === 0) {
             const minPossibleYForGapCenter = PIPE_GAP / 2 + MIN_PIPE_SEGMENT_HEIGHT + 20;
             const maxPossibleYForGapCenter = GAME_HEIGHT - (PIPE_GAP / 2 + MIN_PIPE_SEGMENT_HEIGHT + 20);
             const rangeForGapCenter = maxPossibleYForGapCenter - minPossibleYForGapCenter;
-
-            let initialGapY = Math.random() * rangeForGapCenter + minPossibleYForGapCenter;
-            if (rangeForGapCenter <=0) {
-                initialGapY = GAME_HEIGHT / 2;
-            }
-
+            let initialGapY = (rangeForGapCenter > 0) ? (Math.random() * rangeForGapCenter + minPossibleYForGapCenter) : (GAME_HEIGHT / 2);
             const movesVertically = Math.random() < 0.4;
             pipes.push(new Pipe(GAME_WIDTH, initialGapY, movesVertically));
         }
         pipes = pipes.filter(pipe => pipe.x + pipe.width > 0);
     }
-    function generatePowerUps() { /* ... (same as previous complete version) ... */
+
+    function generatePowerUps() { // Regular random power-ups
         if (Math.random() < POWERUP_SPAWN_CHANCE && powerUps.length < 3) {
-            const powerUpType = Math.random() < 0.5 ? 'shield' : 'fuel';
+            const powerUpType = Math.random() < 0.4 ? 'shield' : 'fuel'; // Slightly less chance for fuel initially
             const powerUpY = Math.random() * (GAME_HEIGHT - POWERUP_SIZE - 150) + 75;
             const powerUpX = GAME_WIDTH + Math.random() * 200;
             powerUps.push(new PowerUp(powerUpX, powerUpY, powerUpType));
@@ -403,7 +430,41 @@ document.addEventListener('DOMContentLoaded', () => {
         powerUps = powerUps.filter(pu => pu.x + pu.size > 0 && !pu.collected);
     }
 
-    function checkCollisions() { /* ... (uses new inset constants, otherwise same as previous complete version) ... */
+    function trySpawnEmergencyBeans() {
+        if (rocket && rocket.fuel < (MAX_FUEL * (LOW_FUEL_THRESHOLD_PERCENT / 100)) && canSpawnEmergencyBeans) {
+            const existingFuelPowerUp = powerUps.find(pu => pu.type === 'fuel');
+            if (!existingFuelPowerUp) {
+                console.log("Low fuel! Spawning emergency beans.");
+                const powerUpY = rocket.y + (Math.random() - 0.5) * 100; // Spawn somewhat near rocket's Y
+                const clampedY = Math.max(POWERUP_SIZE / 2, Math.min(GAME_HEIGHT - POWERUP_SIZE * 1.5, powerUpY));
+
+                let spawnX = GAME_WIDTH * 0.8; // Default further ahead
+                if (pipes.length > 0) { // Try to spawn after the next oncoming pipe if visible
+                    const nextPipe = pipes.find(p => p.x + p.width > rocket.x + rocket.width);
+                    if (nextPipe) {
+                        spawnX = nextPipe.x + nextPipe.width + Math.random() * PIPE_SPACING * 0.3 + 50;
+                    } else if (pipes[pipes.length-1].x + pipes[pipes.length-1].width > 0){ // If last pipe is still on screen
+                        spawnX = pipes[pipes.length-1].x + pipes[pipes.length-1].width + Math.random() * PIPE_SPACING * 0.3 + 50;
+                    }
+                }
+                spawnX = Math.max(spawnX, rocket.x + GAME_WIDTH * 0.3); // Ensure it's ahead of rocket
+                spawnX = Math.min(spawnX, GAME_WIDTH * 1.5); // Don't spawn too extremely far
+
+                powerUps.push(new PowerUp(spawnX, clampedY, 'fuel'));
+                canSpawnEmergencyBeans = false;
+                emergencyBeansCooldownTimer = EMERGENCY_BEANS_COOLDOWN_FRAMES;
+            }
+        }
+
+        if (emergencyBeansCooldownTimer > 0) {
+            emergencyBeansCooldownTimer--;
+            if (emergencyBeansCooldownTimer <= 0) {
+                canSpawnEmergencyBeans = true;
+            }
+        }
+    }
+
+    function checkCollisions() {
         if (!rocket || gameState !== 'PLAYING') return;
 
         if (rocket.y + rocket.height >= GAME_HEIGHT) {
@@ -413,52 +474,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         for (let pipe of pipes) {
-            const rocketRect = {
-                x: rocket.x,
-                y: rocket.y,
-                width: rocket.width,
-                height: rocket.height
-            };
-
+            const rocketRect = { x: rocket.x, y: rocket.y, width: rocket.width, height: rocket.height };
             const topPipeEff = {
-                x: pipe.x + PIPE_HITBOX_INSET_X,
-                y: pipe.topPipe.y,
-                width: pipe.width - 2 * PIPE_HITBOX_INSET_X,
-                height: pipe.topPipe.height - PIPE_HITBOX_INSET_Y_GAPEDGE
+                x: pipe.x + PIPE_HITBOX_INSET_X, y: pipe.topPipe.y,
+                width: pipe.width - 2 * PIPE_HITBOX_INSET_X, height: pipe.topPipe.height - PIPE_HITBOX_INSET_Y_GAPEDGE
             };
-            if (topPipeEff.width < 0) topPipeEff.width = 0;
-            if (topPipeEff.height < 0) topPipeEff.height = 0;
+            if (topPipeEff.width < 0) topPipeEff.width = 0; if (topPipeEff.height < 0) topPipeEff.height = 0;
 
             if (!rocket.shieldActive &&
-                rocketRect.x < topPipeEff.x + topPipeEff.width &&
-                rocketRect.x + rocketRect.width > topPipeEff.x &&
-                rocketRect.y < topPipeEff.y + topPipeEff.height && 
-                rocketRect.y + rocketRect.height > topPipeEff.y) {
+                rocketRect.x < topPipeEff.x + topPipeEff.width && rocketRect.x + rocketRect.width > topPipeEff.x &&
+                rocketRect.y < topPipeEff.y + topPipeEff.height && rocketRect.y + rocketRect.height > topPipeEff.y) {
                 gameOver(); return;
             }
 
             const bottomPipeEff = {
-                x: pipe.x + PIPE_HITBOX_INSET_X,
-                y: pipe.bottomPipe.y + PIPE_HITBOX_INSET_Y_GAPEDGE,
-                width: pipe.width - 2 * PIPE_HITBOX_INSET_X,
-                height: pipe.bottomPipe.height - PIPE_HITBOX_INSET_Y_GAPEDGE
+                x: pipe.x + PIPE_HITBOX_INSET_X, y: pipe.bottomPipe.y + PIPE_HITBOX_INSET_Y_GAPEDGE,
+                width: pipe.width - 2 * PIPE_HITBOX_INSET_X, height: pipe.bottomPipe.height - PIPE_HITBOX_INSET_Y_GAPEDGE
             };
-            if (bottomPipeEff.width < 0) bottomPipeEff.width = 0;
-            if (bottomPipeEff.height < 0) bottomPipeEff.height = 0;
+            if (bottomPipeEff.width < 0) bottomPipeEff.width = 0; if (bottomPipeEff.height < 0) bottomPipeEff.height = 0;
 
             if (!rocket.shieldActive &&
-                rocketRect.x < bottomPipeEff.x + bottomPipeEff.width &&
-                rocketRect.x + rocketRect.width > bottomPipeEff.x &&
-                rocketRect.y < bottomPipeEff.y + bottomPipeEff.height &&
-                rocketRect.y + rocketRect.height > bottomPipeEff.y) { 
+                rocketRect.x < bottomPipeEff.x + bottomPipeEff.width && rocketRect.x + rocketRect.width > bottomPipeEff.x &&
+                rocketRect.y < bottomPipeEff.y + bottomPipeEff.height && rocketRect.y + rocketRect.height > bottomPipeEff.y) {
                 gameOver(); return;
             }
 
             if (!pipe.passed && pipe.x + pipe.width < rocket.x) {
-                pipe.passed = true;
-                score++;
-                playSound(sounds.score);
-                gameSpeed += 0.02;
+                pipe.passed = true; score++; playSound(sounds.score); gameSpeed += 0.02;
             }
         }
 
@@ -470,24 +512,25 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-    function updateUI(currentRocket) { /* ... (same as previous complete version) ... */
+
+    function updateUI(currentRocket) {
         if(scoreDisplay) scoreDisplay.textContent = `Score: ${score}`;
         if(highScoreDisplay) highScoreDisplay.textContent = `High Score: ${highScore}`;
+        let fuelSource = currentRocket || (rocket ? rocket : { fuel: MAX_FUEL }); // Fallback for initial call
 
-        let fuelSource = currentRocket; 
-
-        if (fuelSource && fuelBar) { 
+        if (fuelSource && fuelBar) {
             const fuelPercentage = (fuelSource.fuel / MAX_FUEL) * 100;
             fuelBar.style.width = `${fuelPercentage}%`;
             if (fuelPercentage < 20) fuelBar.style.backgroundColor = '#d63031';
             else if (fuelPercentage < 50) fuelBar.style.backgroundColor = '#fdcb6e';
             else fuelBar.style.backgroundColor = '#e17055';
-        } else if (fuelBar) { 
+        } else if (fuelBar) {
              fuelBar.style.width = '100%';
              fuelBar.style.backgroundColor = '#e17055';
         }
     }
-    function updateGameObjects() { /* ... (same as previous complete version) ... */
+
+    function updateGameObjects() {
         if (gameState !== 'PLAYING') return;
         if (rocket) rocket.update();
         pipes.forEach(pipe => pipe.update());
@@ -497,29 +540,30 @@ document.addEventListener('DOMContentLoaded', () => {
             if (p.life <= 0) particles.splice(index, 1);
         });
     }
-    function drawGameObjects() { /* ... (same as previous complete version) ... */
-        if (!ctx) return; 
-        ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
+    function drawGameObjects() {
+        if (!ctx) return;
+        ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
         pipes.forEach(pipe => pipe.draw());
         powerUps.forEach(pu => pu.draw());
         if (gameState !== 'GAMEOVER' && rocket) rocket.draw();
         particles.forEach(p => p.draw());
     }
-    function gameLoop() { /* ... (same as previous complete version) ... */
+
+    function gameLoop() {
         if (gameState !== 'PLAYING') return;
         frame++;
         generatePipes();
-        if (frame % 75 === 0) generatePowerUps(); 
+        if (frame % 75 === 0) generatePowerUps(); // Regular random power-ups
+        trySpawnEmergencyBeans(); // Check for low fuel assistance
 
         updateGameObjects();
         checkCollisions();
         drawGameObjects();
-        updateUI(rocket); 
+        updateUI(rocket);
         requestAnimationFrame(gameLoop);
     }
 
-    // Event Listeners (same as previous complete version)
     if (startButton) startButton.addEventListener('click', startGame);
     if (restartButton) restartButton.addEventListener('click', startGame);
     window.addEventListener('keydown', handleInput);
