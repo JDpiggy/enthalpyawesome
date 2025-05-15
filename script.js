@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM ELEMENT GRABBING ---
     const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas ? canvas.getContext('2d') : null; // Check if canvas exists
     const scoreDisplay = document.getElementById('score');
     const highScoreDisplay = document.getElementById('highScore');
     const fuelBar = document.getElementById('fuelBar');
@@ -25,16 +25,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const redeemCodeButton = document.getElementById('redeemCodeButton');
     const redeemStatusMessage = document.getElementById('redeemStatusMessage');
 
+    if (!canvas || !ctx) {
+        console.error("CRITICAL ERROR: Canvas or 2D context not found. Game cannot start.");
+        alert("Error: Game canvas not found. Please check the HTML and try again.");
+        return; // Stop script execution if canvas is missing
+    }
+
     // --- GAME SETTINGS & GLOBAL VARIABLES ---
     const GAME_WIDTH = 1280;
     const GAME_HEIGHT = 720;
-    if (canvas) {
-        canvas.width = GAME_WIDTH;
-        canvas.height = GAME_HEIGHT;
-    } else {
-        console.error("Canvas element not found!");
-        return;
-    }
+    canvas.width = GAME_WIDTH;
+    canvas.height = GAME_HEIGHT;
 
     let rocket, obstacles, powerUps, particles;
     let score = 0, highScore = 0, frame = 0, gameSpeed = 2.0;
@@ -62,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let backgroundX = 0;
     const BACKGROUND_SCROLL_SPEED_FACTOR = 0.3;
 
-    let assetsToLoad = charactersData.length + 3 + 1 + 1 + 1; // Chars, Obstacles(3), FuelPU, Music, BG
+    let assetsToLoad = charactersData.length + 3 + 1 + 1 + 1;
     let assetsLoaded = 0;
 
     function getCharacterById(id) { return charactersData.find(char => char.id === id) || charactersData[0]; }
@@ -72,8 +73,8 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log(`${assetName} loaded. Assets: ${assetsLoaded}/${assetsToLoad}`);
         if (assetsLoaded >= assetsToLoad) {
             console.log("All critical assets loading attempted.");
-            gameState = 'START'; // Set state before calling initGame
-            initGame(); // Call initGame after all assets are processed
+            gameState = 'START';
+            initGame();
         }
     }
     charactersData.forEach(charData => { charData.imageObj.src = charData.imageSrc; charData.imageObj.onload = () => { charData.isReady = true; assetLoadManager(`Char ${charData.name}`); }; charData.imageObj.onerror = () => { charData.isReady = false; console.error(`Failed char: ${charData.name}`); assetLoadManager(`Char ${charData.name} (fail)`); }; });
@@ -87,17 +88,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const sounds = { flap: new Audio(), score: new Audio(), hit: new Audio(), powerup: new Audio(), fuelEmpty: new Audio(), purchase: new Audio() };
     sounds.flap.src = 'assets/sounds/fart.wav';
     sounds.purchase.src = 'assets/sounds/purchase.wav';
-    // sounds.score.src = 'assets/sounds/score.wav'; // Uncomment if you have these files
-    // sounds.hit.src = 'assets/sounds/hit.wav';
-    // sounds.powerup.src = 'assets/sounds/powerup.wav';
-    // sounds.fuelEmpty.src = 'assets/sounds/fuel_empty.wav';
     Object.values(sounds).forEach(sound => { if (sound.src) { sound.load(); sound.oncanplaythrough = () => console.log(`${sound.src.split('/').pop()} ready`); sound.onerror = (e) => console.error(`Sound Error: ${sound.src}`, e); }});
 
-    // --- ROCKET (PLAYER) PROPERTIES ---
     const ROCKET_WIDTH = 90; const ROCKET_HEIGHT = 130; const GRAVITY = 0.28; const FLAP_STRENGTH = -7.5;
     const MAX_FUEL = 100; const FUEL_CONSUMPTION = 2.5; const FUEL_REGEN_RATE = 0;
-
-    // --- OBSTACLE PROPERTIES ---
     const OBSTACLE_GAP = 260 + (ROCKET_HEIGHT - 95); const OBSTACLE_SPACING = 420;
     const OBSTACLE_SPEED_INITIAL = 2.0; const MIN_OBSTACLE_SEGMENT_HEIGHT = 40;
     const OBSTACLE_VERTICAL_MOVEMENT_MAX_OFFSET = 60; const OBSTACLE_VERTICAL_SPEED = 0.45;
@@ -106,86 +100,73 @@ document.addEventListener('DOMContentLoaded', () => {
         ruler:     { img: rulerObstacleImg,     visualWidth: 60,  effectiveWidth: 40,  hitboxInsetX: 5,  hitboxInsetYGapEdge: 5  },
         bookstack: { img: bookstackObstacleImg, visualWidth: 150, effectiveWidth: 120, hitboxInsetX: 15, hitboxInsetYGapEdge: 15 }
     };
-
-    // --- POWER-UP PROPERTIES ---
     const POWERUP_SIZE = 50; const POWERUP_SPAWN_CHANCE = 0.0085; const SHIELD_DURATION = 540;
     const LOW_FUEL_THRESHOLD_PERCENT = 20; let canSpawnEmergencyBeans = true;
     const EMERGENCY_BEANS_COOLDOWN_FRAMES = 180; let emergencyBeansCooldownTimer = 0;
 
-    // --- CORE GAME CLASSES ---
-    class Rocket {
+    class Rocket { /* ... (same as previous version) ... */
         constructor() { this.x = GAME_WIDTH / 6; this.y = GAME_HEIGHT / 2 - ROCKET_HEIGHT / 2; this.width = ROCKET_WIDTH; this.height = ROCKET_HEIGHT; this.velocityY = 0; this.fuel = MAX_FUEL; this.shieldActive = false; this.shieldTimer = 0; this.character = getCurrentGameCharacter(); }
         flap() { if (this.fuel > 0 && gameState === 'PLAYING') { this.velocityY = FLAP_STRENGTH; this.fuel -= FUEL_CONSUMPTION; if (this.fuel < 0) this.fuel = 0; playSound(sounds.flap); for (let i = 0; i < 8; i++) { particles.push(new Particle(this.x + this.width / 2, this.y + this.height * 0.9, 'thrust'));}} else if (gameState === 'PLAYING') { playSound(sounds.fuelEmpty); }}
         update() { this.velocityY += GRAVITY; this.y += this.velocityY; if (this.fuel < MAX_FUEL) { this.fuel += FUEL_REGEN_RATE; if (this.fuel > MAX_FUEL) this.fuel = MAX_FUEL; } if (this.shieldActive) { this.shieldTimer--; if (this.shieldTimer <= 0) this.shieldActive = false; } if (this.y < 0) { this.y = 0; this.velocityY = 0; }}
         draw() { const charImg = this.character.imageObj; if (this.character.isReady && charImg.complete && charImg.naturalWidth !== 0) { ctx.drawImage(charImg, this.x, this.y, this.width, this.height); } else { ctx.fillStyle = 'purple'; ctx.fillRect(this.x, this.y, this.width, this.height); } if (this.shieldActive) { ctx.strokeStyle = 'rgba(0, 255, 255, 0.8)'; ctx.lineWidth = 5; ctx.beginPath(); const r = Math.max(this.width, this.height) * 0.8; ctx.arc(this.x + this.width / 2, this.y + this.height / 2, r, 0, Math.PI * 2); ctx.stroke(); }}
     }
-    class Obstacle {
+    class Obstacle { /* ... (same as previous version) ... */
         constructor(x, initialGapY, movesVertically, type) { this.x = x; this.type = type; const P = OBSTACLE_TYPES[this.type]; this.image = P.img; this.visualWidth = P.visualWidth; this.effectiveWidth = P.effectiveWidth; this.hitboxInsetX = P.hitboxInsetX; this.hitboxInsetYGapEdge = P.hitboxInsetYGapEdge; this.initialGapY = initialGapY; this.currentGapY = initialGapY; this.movesVertically = movesVertically; this.verticalDirection = Math.random() > 0.5 ? 1 : -1; this.passed = false; this.topPart = { y: 0, height: 0 }; this.bottomPart = { y: 0, height: 0 }; this._calculateDimensions(); }
         _calculateDimensions() { this.topPart.y = 0; this.topPart.height = this.currentGapY - OBSTACLE_GAP / 2; if (this.topPart.height < MIN_OBSTACLE_SEGMENT_HEIGHT) this.topPart.height = MIN_OBSTACLE_SEGMENT_HEIGHT; this.bottomPart.y = this.currentGapY + OBSTACLE_GAP / 2; this.bottomPart.height = GAME_HEIGHT - this.bottomPart.y; if (this.bottomPart.height < MIN_OBSTACLE_SEGMENT_HEIGHT) this.bottomPart.height = MIN_OBSTACLE_SEGMENT_HEIGHT; if (this.topPart.y + this.topPart.height > this.bottomPart.y - MIN_OBSTACLE_SEGMENT_HEIGHT) { this.topPart.height = Math.max(MIN_OBSTACLE_SEGMENT_HEIGHT, this.currentGapY - OBSTACLE_GAP / 2); this.bottomPart.y = this.currentGapY + OBSTACLE_GAP / 2; this.bottomPart.height = Math.max(MIN_OBSTACLE_SEGMENT_HEIGHT, GAME_HEIGHT - this.bottomPart.y); }}
         update() { this.x -= gameSpeed; if (this.movesVertically) { const mA = OBSTACLE_VERTICAL_SPEED * this.verticalDirection; let nGC = this.currentGapY + mA; const mB = this.initialGapY - OBSTACLE_VERTICAL_MOVEMENT_MAX_OFFSET; const xB = this.initialGapY + OBSTACLE_VERTICAL_MOVEMENT_MAX_OFFSET; const sM = OBSTACLE_GAP / 2 + MIN_OBSTACLE_SEGMENT_HEIGHT + 10; const sX = GAME_HEIGHT - (OBSTACLE_GAP / 2 + MIN_OBSTACLE_SEGMENT_HEIGHT + 10); const fM = Math.max(mB, sM); const fX = Math.min(xB, sX); if (nGC > fX || nGC < fM) { this.verticalDirection *= -1; nGC = Math.max(fM, Math.min(fX, nGC)); } this.currentGapY = nGC; } this._calculateDimensions(); }
-        draw() { if (!this.image || !this.image.isReady) return; const dX = this.x - (this.visualWidth - this.effectiveWidth) / 2; if (this.topPart.height > 0) { ctx.save(); ctx.translate(dX, this.topPart.y + this.topPart.height); ctx.scale(1, -1); ctx.drawImage(this.image, 0, 0, this.visualWidth, this.topPart.height); ctx.restore(); } if (this.bottomPart.height > 0) { ctx.drawImage(this.image, dX, this.bottomPart.y, this.visualWidth, this.bottomPart.height); } /* Optional Hitbox Debug: if(gameState === 'PLAYING'){ctx.strokeStyle='red';ctx.lineWidth=1;const cX=this.x+this.hitboxInsetX;const cW=this.effectiveWidth-2*this.hitboxInsetX;const tY=this.topPart.y;const tH=this.topPart.height-this.hitboxInsetYGapEdge;if(tH>0)ctx.strokeRect(cX,tY,cW,tH);const bY=this.bottomPart.y+this.hitboxInsetYGapEdge;const bH=this.bottomPart.height-this.hitboxInsetYGapEdge;if(bH>0)ctx.strokeRect(cX,bY,cW,bH);} */ }
+        draw() { if (!this.image || !this.image.isReady) return; const dX = this.x - (this.visualWidth - this.effectiveWidth) / 2; if (this.topPart.height > 0) { ctx.save(); ctx.translate(dX, this.topPart.y + this.topPart.height); ctx.scale(1, -1); ctx.drawImage(this.image, 0, 0, this.visualWidth, this.topPart.height); ctx.restore(); } if (this.bottomPart.height > 0) { ctx.drawImage(this.image, dX, this.bottomPart.y, this.visualWidth, this.bottomPart.height); } }
     }
-    class PowerUp {
+    class PowerUp { /* ... (same as previous version) ... */
         constructor(x, y, type) { this.x = x; this.y = y; this.size = POWERUP_SIZE; this.type = type; this.collected = false; }
         update() { this.x -= gameSpeed; }
         draw() { if (this.collected) return; const cX = this.x + this.size / 2; const cY = this.y + this.size / 2; if (this.type === 'shield') { ctx.beginPath(); ctx.arc(cX, cY, this.size / 2, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0, 220, 255, 0.9)'; ctx.fill(); ctx.strokeStyle = 'rgba(20,20,20,0.7)'; ctx.lineWidth = 2; ctx.stroke(); const S = 'S'; const F = `bold ${this.size*0.7}px 'Bangers', cursive`; ctx.fillStyle = '#1e272e'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font=F; ctx.fillText(S, cX, cY + this.size*0.08); } else if (this.type === 'fuel') { if (fuelPowerUpImg.isReady) { ctx.drawImage(fuelPowerUpImg, this.x, this.y, this.size, this.size); } else { ctx.beginPath(); ctx.arc(cX, cY, this.size / 2, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,190,0,0.9)'; ctx.fill(); const S = 'F'; const F = `bold ${this.size*0.7}px 'Bangers', cursive`; ctx.fillStyle = '#1e272e'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font=F; ctx.fillText(S, cX, cY + this.size*0.08); }}}
         applyEffect(r) { playSound(sounds.powerup); if (this.type === 'shield') { r.shieldActive = true; r.shieldTimer = SHIELD_DURATION; } else if (this.type === 'fuel') { r.fuel = MAX_FUEL; } this.collected = true; for (let i=0; i<20; i++) { particles.push(new Particle(this.x+this.size/2, this.y+this.size/2, 'collect'));}}
     }
-    class Particle {
+    class Particle { /* ... (same as previous version - including brown fart particles) ... */
         constructor(x, y, type) { this.x=x; this.y=y; this.type=type; this.size=Math.random()*(type==='explosion'?10:(type==='thrust'?8:7))+3; this.initialLife=(type==='explosion'?70:(type==='thrust'?30:40))+Math.random()*30; this.life=this.initialLife; const a=Math.random()*Math.PI*2; let s=Math.random()*(type==='explosion'?10:(type==='collect'?5:3))+1; if(type==='thrust'){const r=Math.floor(Math.random()*50)+100;const g=Math.floor(Math.random()*40)+60;const b=Math.floor(Math.random()*30)+20;this.color=`rgba(${r},${g},${b},${Math.random()*0.4+0.4})`;this.velocityX=(Math.random()-0.5)*2.5;this.velocityY=Math.random()*2.0+1.0;this.size=Math.random()*8+4;}else{this.velocityX=Math.cos(a)*s;this.velocityY=Math.sin(a)*s;if(type==='explosion'){this.color=`rgba(${Math.floor(Math.random()*255)},${Math.floor(Math.random()*120)},0,0.8)`;}else{this.color=`rgba(255,230,${Math.random()>0.5?50:150},0.8)`;}}}
         update(){this.x+=this.velocityX;this.y+=this.velocityY;if(this.type==='thrust'){this.velocityY+=0.03;this.velocityX*=0.98;this.size*=0.99;}else if(this.type==='explosion'||this.type==='collect'){this.velocityX*=0.97;this.velocityY*=0.97;if(this.type==='explosion')this.velocityY+=0.1;}this.life--;if(this.size<1)this.life=0;}
         draw(){if(this.life<=0||this.size<=0)return;ctx.globalAlpha=Math.max(0,this.life/this.initialLife);ctx.fillStyle=this.color;ctx.beginPath();ctx.arc(this.x,this.y,Math.max(0,this.size),0,Math.PI*2);ctx.fill();ctx.globalAlpha=1.0;}
     }
 
-    // --- SOUND PLAYBACK, START SCREEN ANIMATION ---
     function playSound(s) { if (s && s.src && s.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) { s.currentTime = 0; s.play().catch(e => console.warn(`Sound play fail ${s.src.split('/').pop()}:`, e)); } else if (s && s.src) { console.warn(`Sound ${s.src.split('/').pop()} not ready. St: ${s.readyState}, Nw: ${s.networkState}`); if (s.networkState === HTMLMediaElement.NETWORK_NO_SOURCE || s.networkState === HTMLMediaElement.NETWORK_EMPTY) { if (s.src) s.load(); }}}
     let startScreenAnimFrame = 0; const startScreenCharYOffsetMax = 25; const startScreenCharBobSpeed = 0.03; let isStartScreenLoopRunning = false;
     function drawStartScreenCharacter(bO) { const gC = getCurrentGameCharacter(); if (!gC || !gC.isReady || !ctx) return; const cI = gC.imageObj; const sF = 2.8; const cW = ROCKET_WIDTH*sF; const cH = ROCKET_HEIGHT*sF; const cX = GAME_WIDTH*0.80-cW/2; const cYB = GAME_HEIGHT/2-cH/2; const cY = cYB+bO; if (cI.complete && cI.naturalWidth !== 0) ctx.drawImage(cI, cX, cY, cW, cH); else { ctx.fillStyle = 'grey'; ctx.fillRect(cX, cY, cW, cH); }}
-    function startScreenAnimationLoop() { if (gameState !== 'START' || !isStartScreenLoopRunning || (startScreen && startScreen.style.display === 'none') ) { isStartScreenLoopRunning = false; return; } if(ctx)ctx.clearRect(0,0,GAME_WIDTH,GAME_HEIGHT); drawBackground(); /* Draw background first in animation loop too */ startScreenAnimFrame++; const bO = Math.sin(startScreenAnimFrame*startScreenCharBobSpeed)*startScreenCharYOffsetMax; drawStartScreenCharacter(bO); requestAnimationFrame(startScreenAnimationLoop); }
+    function startScreenAnimationLoop() { if (gameState !== 'START' || !isStartScreenLoopRunning || (startScreen && startScreen.style.display === 'none') ) { isStartScreenLoopRunning = false; return; } if(ctx){ctx.clearRect(0,0,GAME_WIDTH,GAME_HEIGHT); drawBackground();} startScreenAnimFrame++; const bO = Math.sin(startScreenAnimFrame*startScreenCharBobSpeed)*startScreenCharYOffsetMax; drawStartScreenCharacter(bO); requestAnimationFrame(startScreenAnimationLoop); }
 
-    // --- LOCALSTORAGE, SHOP LOGIC, REDEEM CODE ---
-    function loadGameData() { coins = parseInt(localStorage.getItem('flappyLaliCoins_v2'))||0; highScore = parseInt(localStorage.getItem('flappyLaliFartV2_hs'))||0; currentSelectedCharacterId = localStorage.getItem('flappyLaliSelectedChar_v2')||'lali_classic'; shopPreviewCharacterId = currentSelectedCharacterId; const uC = JSON.parse(localStorage.getItem('flappyLaliUnlockedChars_v2')); if (uC && Array.isArray(uC)) { charactersData.forEach(c => { c.unlocked = uC.includes(c.id); }); } const cC = getCharacterById('lali_classic'); if (cC) cC.unlocked = true; else { console.error("Classic Character definition not found!"); charactersData[0].unlocked = true;} /* Failsafe */ const sel = getCharacterById(currentSelectedCharacterId); if (!sel||!sel.unlocked) { currentSelectedCharacterId = 'lali_classic'; shopPreviewCharacterId = 'lali_classic'; localStorage.setItem('flappyLaliSelectedChar_v2', currentSelectedCharacterId); } updateCoinDisplay(); }
+    function loadGameData() { coins = parseInt(localStorage.getItem('flappyLaliCoins_v2'))||0; highScore = parseInt(localStorage.getItem('flappyLaliFartV2_hs'))||0; currentSelectedCharacterId = localStorage.getItem('flappyLaliSelectedChar_v2')||'lali_classic'; shopPreviewCharacterId = currentSelectedCharacterId; const uC = JSON.parse(localStorage.getItem('flappyLaliUnlockedChars_v2')); if (uC && Array.isArray(uC)) { charactersData.forEach(c => { c.unlocked = uC.includes(c.id); }); } const cC = getCharacterById('lali_classic'); if (cC) cC.unlocked = true; else { console.error("Classic Character definition not found!"); charactersData[0].unlocked = true;} const sel = getCharacterById(currentSelectedCharacterId); if (!sel||!sel.unlocked) { currentSelectedCharacterId = 'lali_classic'; shopPreviewCharacterId = 'lali_classic'; localStorage.setItem('flappyLaliSelectedChar_v2', currentSelectedCharacterId); } updateCoinDisplay(); }
     function saveCoins() { localStorage.setItem('flappyLaliCoins_v2', coins); } function saveHighScore() { localStorage.setItem('flappyLaliFartV2_hs', highScore); }
     function saveCharacterData() { const uCI = charactersData.filter(c => c.unlocked).map(c => c.id); localStorage.setItem('flappyLaliUnlockedChars_v2', JSON.stringify(uCI)); localStorage.setItem('flappyLaliSelectedChar_v2', currentSelectedCharacterId); }
     function updateCoinDisplay() { if(coinCountDisplay)coinCountDisplay.textContent=coins; if(shopCoinCountDisplay)shopCoinCountDisplay.textContent=coins; }
-    function renderCharacterShop() { if(!shopPanelLeft)return; shopPanelLeft.innerHTML=''; charactersData.forEach(c=>{ const s=document.createElement('div'); s.classList.add('character-slot'); if(c.id===shopPreviewCharacterId)s.classList.add('selected-in-shop'); const i=new Image();i.src=c.imageSrc;i.alt=c.name;if(!c.isReady||!c.imageObj.complete||c.imageObj.naturalWidth===0)i.classList.add('not-ready');s.appendChild(i); const iD=document.createElement('div');iD.classList.add('char-info-shop'); const nP=document.createElement('p');nP.classList.add('char-name');nP.textContent=c.name;iD.appendChild(nP); if(c.unlocked){const sP=document.createElement('p');sP.classList.add('char-status');sP.textContent=(c.id===currentSelectedCharacterId)?"Equipped":"Owned";iD.appendChild(sP);}else{const pP=document.createElement('p');pP.classList.add('char-price');pP.textContent=`Price: ${c.price}`;iD.appendChild(pP);} s.appendChild(iD); const bC=document.createElement('div');bC.classList.add('shop-button-container'); if(c.unlocked){if(c.id!==currentSelectedCharacterId){const eB=document.createElement('button');eB.textContent="Equip";eB.onclick=(e)=>{e.stopPropagation();equipCharacter(c.id);};bC.appendChild(eB);}}else{const bB=document.createElement('button');bB.textContent="Buy";if(coins<c.price)bB.disabled=true;bB.onclick=(e)=>{e.stopPropagation();buyCharacter(c.id);};bC.appendChild(bB);} s.appendChild(bC);s.onclick=()=>updateShopPreview(c.id);shopPanelLeft.appendChild(s);});}
-    function updateShopPreview(cId) { shopPreviewCharacterId=cId; const c=getCharacterById(cId); if(!c)return; if(shopCharacterPreviewImage){if(c.isReady&&c.imageObj.complete&&c.imageObj.naturalWidth>0){shopCharacterPreviewImage.src=c.imageObj.src;shopCharacterPreviewImage.classList.remove('not-ready');}else{shopCharacterPreviewImage.src='';shopCharacterPreviewImage.classList.add('not-ready');}} if(shopCharacterName)shopCharacterName.textContent=c.name; if(shopCharacterPriceStatus){if(c.unlocked){shopCharacterPriceStatus.textContent=(c.id===currentSelectedCharacterId)?"Currently Equipped":"Owned";shopCharacterPriceStatus.className='char-status owned';}else{shopCharacterPriceStatus.textContent=`Price: ${c.price} Coins`;shopCharacterPriceStatus.className='char-status';}} const slts=shopPanelLeft.querySelectorAll('.character-slot');slts.forEach(s=>{const sCN=s.querySelector('.char-name').textContent;const sC=charactersData.find(ch=>ch.name===sCN);if(sC&&sC.id===cId)s.classList.add('selected-in-shop');else s.classList.remove('selected-in-shop');});}
+    function renderCharacterShop() { if(!shopPanelLeft){console.error("Shop panel left not found!"); return;} shopPanelLeft.innerHTML=''; charactersData.forEach(c=>{ const s=document.createElement('div'); s.classList.add('character-slot'); if(c.id===shopPreviewCharacterId)s.classList.add('selected-in-shop'); const i=new Image();i.src=c.imageSrc;i.alt=c.name;if(!c.isReady||!c.imageObj.complete||c.imageObj.naturalWidth===0)i.classList.add('not-ready');s.appendChild(i); const iD=document.createElement('div');iD.classList.add('char-info-shop'); const nP=document.createElement('p');nP.classList.add('char-name');nP.textContent=c.name;iD.appendChild(nP); if(c.unlocked){const sP=document.createElement('p');sP.classList.add('char-status');sP.textContent=(c.id===currentSelectedCharacterId)?"Equipped":"Owned";iD.appendChild(sP);}else{const pP=document.createElement('p');pP.classList.add('char-price');pP.textContent=`Price: ${c.price}`;iD.appendChild(pP);} s.appendChild(iD); const bC=document.createElement('div');bC.classList.add('shop-button-container'); if(c.unlocked){if(c.id!==currentSelectedCharacterId){const eB=document.createElement('button');eB.textContent="Equip";eB.onclick=(e)=>{e.stopPropagation();equipCharacter(c.id);};bC.appendChild(eB);}}else{const bB=document.createElement('button');bB.textContent="Buy";if(coins<c.price)bB.disabled=true;bB.onclick=(e)=>{e.stopPropagation();buyCharacter(c.id);};bC.appendChild(bB);} s.appendChild(bC);s.onclick=()=>updateShopPreview(c.id);shopPanelLeft.appendChild(s);});}
+    function updateShopPreview(cId) { shopPreviewCharacterId=cId; const c=getCharacterById(cId); if(!c)return; if(shopCharacterPreviewImage){if(c.isReady&&c.imageObj.complete&&c.imageObj.naturalWidth>0){shopCharacterPreviewImage.src=c.imageObj.src;shopCharacterPreviewImage.classList.remove('not-ready');}else{shopCharacterPreviewImage.src='';shopCharacterPreviewImage.classList.add('not-ready');}} if(shopCharacterName)shopCharacterName.textContent=c.name; if(shopCharacterPriceStatus){if(c.unlocked){shopCharacterPriceStatus.textContent=(c.id===currentSelectedCharacterId)?"Currently Equipped":"Owned";shopCharacterPriceStatus.className='char-status owned';}else{shopCharacterPriceStatus.textContent=`Price: ${c.price} Coins`;shopCharacterPriceStatus.className='char-status';}} if(shopPanelLeft){const slts=shopPanelLeft.querySelectorAll('.character-slot');slts.forEach(s=>{const sCN=s.querySelector('.char-name').textContent;const sC=charactersData.find(ch=>ch.name===sCN);if(sC&&sC.id===cId)s.classList.add('selected-in-shop');else s.classList.remove('selected-in-shop');});}}
     function equipCharacter(cId) { const cTE=getCharacterById(cId); if(cTE&&cTE.unlocked){currentSelectedCharacterId=cId;saveCharacterData();renderCharacterShop();updateShopPreview(shopPreviewCharacterId);}}
     function buyCharacter(cId) { const cTB=getCharacterById(cId); if(cTB&&!cTB.unlocked&&coins>=cTB.price){coins-=cTB.price;cTB.unlocked=true;playSound(sounds.purchase);saveCoins();saveCharacterData();updateCoinDisplay();renderCharacterShop();updateShopPreview(cId);}}
     const redeemCodes = { "imjaron": { description: "All Lali characters unlocked!", action: () => { let uS = false; charactersData.forEach(c => { if (!c.unlocked) { c.unlocked = true; uS = true; }}); if (uS) { saveCharacterData(); if (shopScreen && shopScreen.style.display !== 'none') { renderCharacterShop(); updateShopPreview(shopPreviewCharacterId); }} return uS; }}};
     function handleRedeemCode() { if(!redeemCodeInput||!redeemStatusMessage)return; const eC=redeemCodeInput.value.trim().toLowerCase(); redeemCodeInput.value=''; if(redeemCodes[eC]){const cE=redeemCodes[eC];const succ=cE.action();if(succ){playSound(sounds.purchase);redeemStatusMessage.textContent=cE.description||"Code redeemed!";redeemStatusMessage.className='success';}else{redeemStatusMessage.textContent="Code applied, no new changes.";redeemStatusMessage.className='success';}}else{redeemStatusMessage.textContent="Invalid code.";redeemStatusMessage.className='error';} redeemStatusMessage.style.display='block'; setTimeout(()=>{if(redeemStatusMessage)redeemStatusMessage.style.display='none';},4000);}
 
-    // --- MAIN GAME STATE FUNCTIONS ---
     function initGame() { if (gameState !== 'LOADING') loadGameData(); rocket = null; obstacles = []; powerUps = []; particles = []; score = 0; frame = 0; gameSpeed = OBSTACLE_SPEED_INITIAL; if(startScreen)startScreen.style.display='flex'; if(gameOverScreen)gameOverScreen.style.display='none'; if(shopScreen)shopScreen.style.display='none'; if(redeemStatusMessage)redeemStatusMessage.style.display='none'; if(startButton)startButton.disabled=assetsLoaded<assetsToLoad; if(shopButton)shopButton.disabled=assetsLoaded<assetsToLoad; if(redeemCodeButton)redeemCodeButton.disabled=assetsLoaded<assetsToLoad; updateUI(null); if(ctx)ctx.clearRect(0,0,GAME_WIDTH,GAME_HEIGHT); isStartScreenLoopRunning=false; if(gameState==='START'){const gC=getCurrentGameCharacter();if(gC&&gC.isReady){isStartScreenLoopRunning=true;startScreenAnimationLoop();} if(backgroundMusic.isReady&&backgroundMusic.paused){backgroundMusic.play().catch(e=>console.warn("BG Music autoplay fail init.",e));}}}
     function startGame() { isStartScreenLoopRunning=false; if(ctx)ctx.clearRect(0,0,GAME_WIDTH,GAME_HEIGHT); gameState='PLAYING'; if(startScreen)startScreen.style.display='none'; if(shopScreen)shopScreen.style.display='none'; if(gameOverScreen)gameOverScreen.style.display='none'; rocket=new Rocket(); obstacles=[]; powerUps=[]; particles=[]; score=0; frame=0; gameSpeed=OBSTACLE_SPEED_INITIAL; canSpawnEmergencyBeans=true; emergencyBeansCooldownTimer=0; updateUI(rocket); if(backgroundMusic.isReady&&backgroundMusic.paused){backgroundMusic.play().catch(e=>console.error("BG music play err:",e));} gameLoop(); }
     function gameOver() { playSound(sounds.hit); gameState='GAMEOVER'; const eTG=score; coins+=eTG; saveCoins(); updateCoinDisplay(); if(coinsEarnedDisplay)coinsEarnedDisplay.textContent=eTG; if(rocket){for(let i=0;i<50;i++){particles.push(new Particle(rocket.x+rocket.width/2,rocket.y+rocket.height/2,'explosion'));} rocket=null;} if(score>highScore){highScore=score;saveHighScore();if(newHighScoreTextGameOver)newHighScoreTextGameOver.style.display='block';}else{if(newHighScoreTextGameOver)newHighScoreTextGameOver.style.display='none';} if(finalScoreDisplay)finalScoreDisplay.textContent=score; if(gameOverScreen)gameOverScreen.style.display='flex'; updateUI(null); }
 
-    // --- BACKGROUND DRAWING ---
-    function drawBackground() {
-        if (backgroundImg.isReady && backgroundImg.complete && backgroundImg.naturalWidth > 0) {
-            ctx.drawImage(backgroundImg, backgroundX, 0, backgroundImg.width, GAME_HEIGHT);
-            // Draw a second instance for seamless looping if needed
-            if (backgroundX < 0) { // Check if part of the second image would be visible
-                 ctx.drawImage(backgroundImg, backgroundX + backgroundImg.width, 0, backgroundImg.width, GAME_HEIGHT);
+    function drawBackground() { if(!ctx)return; if(backgroundImg.isReady && backgroundImg.complete && backgroundImg.naturalWidth > 0){ ctx.drawImage(backgroundImg, backgroundX, 0, backgroundImg.width, GAME_HEIGHT); if (backgroundX < 0) { ctx.drawImage(backgroundImg, backgroundX + backgroundImg.width, 0, backgroundImg.width, GAME_HEIGHT); } } else { ctx.fillStyle = '#87CEEB'; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT); }}
+    function handleInput(e) {
+        // Check for Space, W, Up Arrow, Mousedown, or Touchstart
+        if (e.code === 'Space' || e.code === 'KeyW' || e.code === 'ArrowUp' || e.type === 'mousedown' || e.type === 'touchstart') {
+            e.preventDefault(); // Prevent default actions like page scroll
+            if (gameState === 'PLAYING' && rocket) {
+                rocket.flap();
             }
-        } else {
-            ctx.fillStyle = '#87CEEB'; // Fallback solid color
-            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
         }
     }
-
-    // --- GAME LOOP AND MECHANICS ---
-    function handleInput(e) { if(e.code==='Space'||e.type==='mousedown'||e.type==='touchstart'){e.preventDefault();if(gameState==='PLAYING'&&rocket)rocket.flap();}}
     function generateObstacles() { if(frame%Math.floor(OBSTACLE_SPACING/gameSpeed)===0){const oTK=Object.keys(OBSTACLE_TYPES);const rT=oTK[Math.floor(Math.random()*oTK.length)];const mGC=OBSTACLE_GAP/2+MIN_OBSTACLE_SEGMENT_HEIGHT+20;const xGC=GAME_HEIGHT-(OBSTACLE_GAP/2+MIN_OBSTACLE_SEGMENT_HEIGHT+20);const range=xGC-mGC;let iGY=(range>0)?(Math.random()*range+mGC):(GAME_HEIGHT/2);const mV=Math.random()<0.4;obstacles.push(new Obstacle(GAME_WIDTH,iGY,mV,rT));} obstacles=obstacles.filter(o=>o.x+o.visualWidth>0);}
     function generatePowerUps() { if(Math.random()<POWERUP_SPAWN_CHANCE&&powerUps.length<3){const t=Math.random()<0.4?'shield':'fuel';const y=Math.random()*(GAME_HEIGHT-POWERUP_SIZE-150)+75;const x=GAME_WIDTH+Math.random()*200;powerUps.push(new PowerUp(x,y,t));} powerUps=powerUps.filter(pU=>pU.x+pU.size>0&&!pU.collected);}
     function trySpawnEmergencyBeans() { if(rocket&&rocket.fuel<(MAX_FUEL*(LOW_FUEL_THRESHOLD_PERCENT/100))&&canSpawnEmergencyBeans){const eFPU=powerUps.find(pU=>pU.type==='fuel');if(!eFPU){let sX=GAME_WIDTH*0.8;const nRY=rocket.y+(Math.random()-0.5)*100;const cY=Math.max(POWERUP_SIZE/2,Math.min(GAME_HEIGHT-POWERUP_SIZE*1.5,nRY));const nO=obstacles.find(o=>o.x+o.effectiveWidth>rocket.x+rocket.width);if(nO)sX=nO.x+nO.effectiveWidth+Math.random()*OBSTACLE_SPACING*0.3+50;else if(obstacles.length>0&&obstacles[obstacles.length-1].x+obstacles[obstacles.length-1].effectiveWidth>0){sX=obstacles[obstacles.length-1].x+obstacles[obstacles.length-1].effectiveWidth+Math.random()*OBSTACLE_SPACING*0.3+50;}sX=Math.max(sX,rocket.x+GAME_WIDTH*0.3);sX=Math.min(sX,GAME_WIDTH*1.5);powerUps.push(new PowerUp(sX,cY,'fuel'));canSpawnEmergencyBeans=false;emergencyBeansCooldownTimer=EMERGENCY_BEANS_COOLDOWN_FRAMES;}} if(emergencyBeansCooldownTimer>0){emergencyBeansCooldownTimer--;if(emergencyBeansCooldownTimer<=0)canSpawnEmergencyBeans=true;}}
-    function checkCollisions() { if(!rocket||gameState!=='PLAYING')return; if(rocket.y+rocket.height>=GAME_HEIGHT){rocket.y=GAME_HEIGHT-rocket.height;rocket.velocityY=0;if(!rocket.shieldActive){gameOver();return;}else{rocket.velocityY=FLAP_STRENGTH*0.3;playSound(sounds.hit);}} for(let o of obstacles){const rR={x:rocket.x,y:rocket.y,width:rocket.width,height:rocket.height};const oCX=o.x+o.hitboxInsetX;const oCW=o.effectiveWidth-2*o.hitboxInsetX;const tPR={x:oCX,y:o.topPart.y,width:oCW,height:o.topPart.height-o.hitboxInsetYGapEdge};if(tPR.height<0)tPR.height=0;if(!rocket.shieldActive&&rR.x<tPR.x+tPR.width&&rR.x+rR.width>tPR.x&&rR.y<tPR.y+tPR.height&&rR.y+rR.height>tPR.y){gameOver();return;}const bPR={x:oCX,y:o.bottomPart.y+o.hitboxInsetYGapEdge,width:oCW,height:o.bottomPart.height-o.hitboxInsetYGapEdge};if(bPR.height<0)bPR.height=0;if(!rocket.shieldActive&&rR.x<bPR.x+bPR.width&&rR.x+rR.width>bPR.x&&rR.y<bPR.y+bPR.height&&rR.y+rR.height>bPR.y){gameOver();return;}if(!o.passed&&o.x+o.effectiveWidth<rocket.x){o.passed=true;score++;playSound(sounds.score);gameSpeed+=0.02;}} for(let pU of powerUps){if(!pU.collected&&rocket.x<pU.x+pU.size&&rocket.x+rocket.width>pU.x&&rocket.y<pU.y+pU.size&&rocket.y+rocket.height>pU.y)pU.applyEffect(rocket);}} // Corrected rocketRect reference for powerup
+    function checkCollisions() { if(!rocket||gameState!=='PLAYING')return; if(rocket.y+rocket.height>=GAME_HEIGHT){rocket.y=GAME_HEIGHT-rocket.height;rocket.velocityY=0;if(!rocket.shieldActive){gameOver();return;}else{rocket.velocityY=FLAP_STRENGTH*0.3;playSound(sounds.hit);}} for(let o of obstacles){const rR={x:rocket.x,y:rocket.y,width:rocket.width,height:rocket.height};const oCX=o.x+o.hitboxInsetX;const oCW=o.effectiveWidth-2*o.hitboxInsetX;const tPR={x:oCX,y:o.topPart.y,width:oCW,height:o.topPart.height-o.hitboxInsetYGapEdge};if(tPR.height<0)tPR.height=0;if(!rocket.shieldActive&&rR.x<tPR.x+tPR.width&&rR.x+rR.width>tPR.x&&rR.y<tPR.y+tPR.height&&rR.y+rR.height>tPR.y){gameOver();return;}const bPR={x:oCX,y:o.bottomPart.y+o.hitboxInsetYGapEdge,width:oCW,height:o.bottomPart.height-o.hitboxInsetYGapEdge};if(bPR.height<0)bPR.height=0;if(!rocket.shieldActive&&rR.x<bPR.x+bPR.width&&rR.x+rR.width>bPR.x&&rR.y<bPR.y+bPR.height&&rR.y+rR.height>bPR.y){gameOver();return;}if(!o.passed&&o.x+o.effectiveWidth<rocket.x){o.passed=true;score++;playSound(sounds.score);gameSpeed+=0.02;}} for(let pU of powerUps){const rocketRect={x:rocket.x,y:rocket.y,width:rocket.width,height:rocket.height}; /* Define rocketRect here */ if(!pU.collected&&rocketRect.x<pU.x+pU.size&&rocketRect.x+rocketRect.width>pU.x&&rocketRect.y<pU.y+pU.size&&rocketRect.y+rocketRect.height>pU.y)pU.applyEffect(rocket);}}
     function updateGameObjects() { if(gameState!=='PLAYING')return; if(rocket)rocket.update(); obstacles.forEach(o=>o.update()); powerUps.forEach(pU=>pU.update()); particles=particles.filter(p=>p.life>0); particles.forEach(p=>p.update()); if(backgroundImg.isReady){backgroundX-=gameSpeed*BACKGROUND_SCROLL_SPEED_FACTOR;if(backgroundX<=-backgroundImg.width){backgroundX+=backgroundImg.width;}}}
     function drawGameObjects() { if(!ctx)return; ctx.clearRect(0,0,GAME_WIDTH,GAME_HEIGHT); drawBackground(); obstacles.forEach(o=>o.draw()); powerUps.forEach(pU=>pU.draw()); if(gameState==='PLAYING'&&rocket)rocket.draw(); particles.forEach(p=>p.draw());}
     function gameLoop() { if(gameState!=='PLAYING')return; frame++; generateObstacles(); if(frame%75===0)generatePowerUps(); trySpawnEmergencyBeans(); updateGameObjects(); checkCollisions(); drawGameObjects(); updateUI(rocket); requestAnimationFrame(gameLoop);}
     function updateUI(cR) { if(scoreDisplay)scoreDisplay.textContent=`Score: ${score}`; if(highScoreDisplay)highScoreDisplay.textContent=`High Score: ${highScore}`; updateCoinDisplay(); let fS=cR||(rocket?rocket:{fuel:MAX_FUEL}); if(fuelBar){if(fS){const fP=(fS.fuel/MAX_FUEL)*100;fuelBar.style.width=`${fP}%`;if(fP<LOW_FUEL_THRESHOLD_PERCENT)fuelBar.style.backgroundColor='#d63031';else if(fP<50)fuelBar.style.backgroundColor='#fdcb6e';else fuelBar.style.backgroundColor='#e17055';}else{fuelBar.style.width='100%';fuelBar.style.backgroundColor='#e17055';}}}
 
-    // --- EVENT LISTENERS & INITIALIZATION ---
     if(startButton)startButton.addEventListener('click',startGame); if(restartButton)restartButton.addEventListener('click',initGame);
     if(shopButton){shopButton.addEventListener('click',()=>{isStartScreenLoopRunning=false;if(ctx)ctx.clearRect(0,0,GAME_WIDTH,GAME_HEIGHT);if(startScreen)startScreen.style.display='none';if(shopScreen)shopScreen.style.display='flex';renderCharacterShop();updateShopPreview(shopPreviewCharacterId);updateCoinDisplay();});}
     if(backToMenuButton){backToMenuButton.addEventListener('click',()=>{if(shopScreen)shopScreen.style.display='none';if(startScreen)startScreen.style.display='flex';const gC=getCurrentGameCharacter();if(assetsLoaded>=assetsToLoad&&gC&&gC.isReady){isStartScreenLoopRunning=true;startScreenAnimationLoop();}});}
@@ -193,7 +174,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if(redeemCodeInput){redeemCodeInput.addEventListener('keypress',(e)=>{if(e.key==='Enter'){handleRedeemCode();}});}
     window.addEventListener('keydown',handleInput); if(canvas){canvas.addEventListener('mousedown',handleInput);canvas.addEventListener('touchstart',handleInput,{passive:false});}
 
-    loadGameData(); // Load persistent data first
-    // Then disable buttons, assetLoadManager will enable them via initGame when assets are ready
+    loadGameData();
     if(startButton)startButton.disabled=true; if(shopButton)shopButton.disabled=true; if(redeemCodeButton)redeemCodeButton.disabled=true;
 });
