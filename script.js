@@ -44,10 +44,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- CHARACTER DATA ---
     let charactersData = [
         { id: 'lali_classic', name: 'Lali Classic', imageSrc: 'assets/tiles/lali_classic.png', price: 0, imageObj: new Image(), isReady: false, unlocked: true },
-        { id: 'lali_super', name: 'Super Lali', imageSrc: 'assets/tiles/lali_super.png', price: 500, imageObj: new Image(), isReady: false, unlocked: false },
+        { id: 'lali_super', name: 'Super Lali', imageSrc: 'assets/tiles/lali_super.png', price: 200, imageObj: new Image(), isReady: false, unlocked: false },
+        { id: 'lali_ninja', name: 'Ninja Lali', imageSrc: 'assets/tiles/lali_ninja.png', price: 500, imageObj: new Image(), isReady: false, unlocked: false },
         { id: 'lali_robo', name: 'Robo Lali', imageSrc: 'assets/tiles/lali_robo.png', price: 1500, imageObj: new Image(), isReady: false, unlocked: false },
-        { id: 'lali_ninja', name: 'Ninja Lali', imageSrc: 'assets/tiles/lali_ninja.png', price: 3000, imageObj: new Image(), isReady: false, unlocked: false },
-        { id: 'lali_golden', name: 'Golden Lali', imageSrc: 'assets/tiles/lali_golden.png', price: 7500, imageObj: new Image(), isReady: false, unlocked: false },
+        { id: 'lali_golden', name: 'Golden Lali', imageSrc: 'assets/tiles/lali_golden.png', price: 3000, imageObj: new Image(), isReady: false, unlocked: false },
     ];
     let currentSelectedCharacterId = 'lali_classic';
     let shopPreviewCharacterId = 'lali_classic';
