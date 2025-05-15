@@ -1,440 +1,78 @@
-@import url('https://fonts.googleapis.com/css2?family=Bangers&family=Roboto:wght@400;700&display=swap');
+/* ... (all your existing CSS) ... */
 
-body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    background-color: #1e272e;
-    margin: 0;
-    font-family: 'Roboto', sans-serif;
-    color: white;
-    overflow: hidden;
+/* Start Screen Button Adjustments */
+#startScreen button {
+    margin: 12px 8px; /* Adjusted from 15px for a bit tighter layout */
 }
 
-.game-container {
-    position: relative;
-    border: 4px solid #303952;
-    box-shadow: 0 0 30px rgba(0,0,0,0.7);
-    border-radius: 8px;
-}
-
-canvas {
-    display: block;
-    background-color: #87CEEB;
-}
-
-#ui-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    pointer-events: none; /* Allows clicks to pass through to canvas unless an element has pointer-events: all */
-}
-
-#score, #highScore {
-    position: absolute;
-    font-size: 48px;
-    padding: 20px 25px;
-    text-shadow: 3px 3px 5px rgba(0,0,0,0.6);
-    font-family: 'Bangers', cursive;
-    letter-spacing: 1.5px;
-    color: #fbc531;
-}
-
-#score {
-    top: 25px;
-    left: 25px;
-}
-
-#highScore {
-    top: 25px;
-    right: 25px;
-}
-
-#coinDisplayContainer {
-    position: absolute;
-    top: 140px; /* MOVED DOWN */
-    left: 25px;
-    font-size: 28px;
-    padding: 10px 15px;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-    font-family: 'Bangers', cursive;
-    letter-spacing: 1px;
-    color: #feca57; /* Coin yellow */
-    background-color: rgba(0,0,0,0.3);
-    border-radius: 8px;
-}
-
-#fuelBarContainer {
-    position: absolute;
-    bottom: 25px;
-    left: 25px;
-    font-size: 24px;
-    background-color: rgba(0,0,0,0.5);
-    padding: 12px 18px;
-    border-radius: 10px;
-}
-
-#fuelBar {
-    width: 220px;
-    height: 24px;
-    background-color: #e17055;
-    border: 2px solid #0d0d0d;
-    border-radius: 6px;
-    margin-top: 6px;
-    transition: width 0.2s ease-out, background-color 0.3s ease;
-}
-
-
-#startScreen, #gameOverScreen { /* Common styles for pop-up screens */
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(44, 62, 80, 0.92); /* Dark blue-grey */
-    padding: 50px 60px;
-    border-radius: 20px;
-    text-align: center;
-    pointer-events: all; /* These screens should capture clicks */
-    box-shadow: 0 8px 25px rgba(0,0,0,0.5);
-    min-width: 500px;
-    max-width: 70%;
-    display: flex; /* Using flex for internal alignment */
-    flex-direction: column;
-    align-items: center;
-}
-
-#startScreen h1, #gameOverScreen h2 { /* Titles on pop-up screens */
-    margin-top: 0;
-    margin-bottom: 35px;
-    color: #ff7f50; /* Coral */
-    font-size: 90px;
-    font-family: 'Bangers', cursive;
-    letter-spacing: 3px;
-    line-height: 1;
-    text-shadow: 4px 4px 0px rgba(0,0,0,0.25);
-}
-
-#startScreen p, #gameOverScreen p { /* General paragraphs on pop-ups */
-    margin-bottom: 30px;
-    font-size: 22px;
-    line-height: 1.7;
-}
-
-/* Buttons on Start and Game Over Screens */
-#startScreen button, #gameOverScreen button#restartButton {
-    padding: 18px 36px;
-    font-size: 22px;
-    background-image: linear-gradient(to bottom, #55efc4, #00b894); /* Green gradient */
-    color: #1e272e;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    margin: 15px 8px; /* Adjusted margin for better spacing */
-    transition: all 0.2s ease;
-    pointer-events: all;
-    text-transform: uppercase;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-    font-family: 'Roboto', sans-serif;
-}
-
-#startScreen button:hover, #gameOverScreen button#restartButton:hover {
-    background-image: linear-gradient(to bottom, #69f2d0, #00c9a2);
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.4);
-}
-
-#startScreen button:active, #gameOverScreen button#restartButton:active {
-    transform: translateY(0px) scale(0.98);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.25);
-}
-
-/* Game Over Screen Specifics */
-#gameOverScreen .score-info-box {
-    background-color: rgba(0, 0, 0, 0.25);
-    padding: 20px 30px;
-    border-radius: 10px;
-    margin-bottom: 25px;
-    min-width: 250px;
-    box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
-}
-
-#gameOverScreen .score-info-box p {
-    margin-top: 8px;
-    margin-bottom: 8px;
-    font-size: 22px;
-    line-height: 1.5;
-    color: #dfe6e9;
-}
-
-#gameOverScreen .score-info-box p span#coinsEarned,
-#gameOverScreen .score-info-box p span#finalScore { /* Make score/coin numbers stand out a bit */
-    font-weight: bold;
-}
-#gameOverScreen .score-info-box p span#coinsEarned {
-    color: #feca57; /* Coin yellow */
-}
-
-
-#gameOverScreen .score-info-box p#newHighScoreTextGameOver {
-    color: #fdcb6e;
-    font-family: 'Bangers', cursive;
-    font-size: 28px;
-    letter-spacing: 1px;
-    margin-top: 15px;
-    display: none; /* Controlled by JS */
-}
-
-
-/* --- NEW: Character Shop Screen Styles --- */
-#shopScreen {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 90%;
-    max-width: 1000px;
-    height: 85vh;
-    max-height: 650px;
-    background-color: rgba(30, 39, 46, 0.95); /* Darker shop background */
-    padding: 25px;
-    border-radius: 20px;
-    text-align: center;
-    pointer-events: all;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-    display: flex;
-    flex-direction: column;
-    color: white;
-}
-
-#shopHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 2px solid rgba(255,255,255,0.2);
-}
-
-#shopHeader h2 {
-    font-size: 60px;
-    color: #ff9f43; /* Orange */
-    font-family: 'Bangers', cursive;
-    margin: 0;
-    text-shadow: 3px 3px 0px rgba(0,0,0,0.2);
-}
-
-#shopCoinDisplay {
-    font-size: 24px;
-    font-family: 'Bangers', cursive;
-    color: #feca57;
-    background-color: rgba(0,0,0,0.3);
-    padding: 8px 15px;
-    border-radius: 8px;
-}
-
-
-#shopContent {
-    display: flex;
-    flex-grow: 1;
-    overflow: hidden;
-    gap: 20px;
-}
-
-#shopPanelLeft {
-    flex: 1;
+/* --- NEW: Redeem Code Section Styles --- */
+#redeemCodeSection {
+    margin-top: 25px; /* Space above the redeem section */
     padding: 15px;
-    background-color: rgba(0,0,0,0.2);
-    border-radius: 10px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-#shopPanelRight {
-    flex: 1.5;
-    padding: 20px;
     background-color: rgba(0,0,0,0.15);
     border-radius: 10px;
+    width: 80%;
+    max-width: 400px; /* Max width for this section */
+    box-sizing: border-box;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column; /* Stack input and button vertically */
+    align-items: center; /* Center items */
+    gap: 10px; /* Space between elements */
 }
 
-#shopCharacterPreviewImage {
-    max-width: 80%;
-    max-height: 250px;
-    height: auto;
-    object-fit: contain;
-    margin-bottom: 20px;
-    background-color: rgba(0,0,0,0.1);
-    border-radius: 10px;
-    padding: 10px;
-    border: 1px solid rgba(255,255,255,0.1);
-}
-#shopCharacterPreviewImage.not-ready {
-    background-color: #444;
-    min-height: 200px; /* Placeholder height */
-    content: "Loading..."; /* Simple text placeholder */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #aaa;
-    font-style: italic;
-}
-
-
-#shopCharacterName {
-    font-size: 32px;
-    font-family: 'Bangers', cursive;
-    color: #fff;
-    margin-bottom: 10px;
-}
-
-#shopCharacterPriceStatus {
-    font-size: 20px;
-    color: #feca57;
-    margin-bottom: 15px;
-}
-#shopCharacterPriceStatus.owned {
-    color: #55efc4; /* Green for owned/selected */
-}
-
-
-/* Character Slot Styling within the Shop */
-#shopPanelLeft .character-slot {
-    background-color: rgba(255,255,255,0.08);
-    border: 2px solid rgba(255,255,255,0.2);
-    border-radius: 8px;
-    padding: 10px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
-    cursor: pointer;
-}
-
-#shopPanelLeft .character-slot:hover {
-    background-color: rgba(255,255,255,0.15);
-    border-color: rgba(255,255,255,0.4);
-}
-
-#shopPanelLeft .character-slot.selected-in-shop {
-    border-color: #55efc4;
-    background-color: rgba(85, 239, 196, 0.15);
-}
-
-#shopPanelLeft .character-slot img {
-    width: 60px;
-    height: 60px;
-    object-fit: contain;
-    background-color: rgba(0,0,0,0.2);
-    border-radius: 5px;
-    border: 1px solid rgba(255,255,255,0.1);
-    flex-shrink: 0;
-}
-#shopPanelLeft .character-slot img.not-ready {
-    background-color: #333;
-    /* Could add a small "loading" text or icon here via pseudo-element if desired */
-}
-
-.char-info-shop {
-    flex-grow: 1;
-    text-align: left;
-    min-width: 0; /* Prevents text from pushing button out */
-    overflow: hidden; /* Hide overflow for name */
-}
-
-#shopPanelLeft .character-slot .char-name {
+#redeemCodeInput {
+    padding: 10px 15px;
     font-size: 16px;
-    font-weight: bold;
-    color: #fff;
-    margin-bottom: 3px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-#shopPanelLeft .character-slot .char-price,
-#shopPanelLeft .character-slot .char-status {
-    font-size: 13px;
-    color: #feca57;
-    margin-bottom: 5px;
-}
-#shopPanelLeft .character-slot .char-status {
-    color: #55efc4;
-}
-
-.shop-button-container { /* Container for the buy/equip button */
-    margin-left: auto; /* Pushes button to the right */
-    flex-shrink: 0;   /* Prevents this container from shrinking */
-}
-
-#shopPanelLeft .character-slot button {
-    padding: 7px 12px;
-    font-size: 13px;
-    background-image: linear-gradient(to bottom, #74b9ff, #0984e3); /* Blue gradient */
-    color: white;
-    border:none;
     border-radius: 6px;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: background-image 0.2s ease;
-}
-#shopPanelLeft .character-slot button:hover:not(:disabled) {
-    background-image: linear-gradient(to bottom, #85c4ff, #0a8eff);
-}
-#shopPanelLeft .character-slot button:disabled {
-    background-image: linear-gradient(to bottom, #999, #777);
-    cursor: not-allowed;
-    opacity: 0.7;
+    border: 2px solid #4a69bd; /* A slightly different border color */
+    background-color: #dfe6e9; /* Light grey background */
+    color: #2d3436; /* Dark text */
+    width: 90%; /* Take most of the container width */
+    box-sizing: border-box;
+    text-align: center;
 }
 
+#redeemCodeInput::placeholder {
+    color: #636e72;
+}
 
-#shopScreen #backToMenuButton,
-#startScreen #shopButton /* Style for the shop button on main menu */
- {
-    padding: 15px 30px;
-    font-size: 18px;
-    width: fit-content;
-    align-self: center;
+#redeemCodeSection button#redeemCodeButton {
+    padding: 10px 25px;
+    font-size: 16px;
+    background-image: linear-gradient(to bottom, #fd79a8, #e84393); /* Pinkish gradient */
     color: white;
     border: none;
-    border-radius: 10px;
+    border-radius: 8px;
     cursor: pointer;
-    text-transform: uppercase;
-    font-weight: 700;
-    letter-spacing: 1px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.25);
-    font-family: 'Roboto', sans-serif;
     transition: all 0.2s ease;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    width: auto; /* Let it size to content */
+    margin: 0; /* Reset margin from general button style if needed */
 }
 
-#shopScreen #backToMenuButton {
-    margin-top: auto; /* Pushes to bottom of flex container */
-    background-image: linear-gradient(to bottom, #ff7675, #d63031); /* Reddish */
-}
-#shopScreen #backToMenuButton:hover {
-    background-image: linear-gradient(to bottom, #ff8b8a, #e04443);
+#redeemCodeSection button#redeemCodeButton:hover {
+    background-image: linear-gradient(to bottom, #ff8fbc, #f353a3);
     transform: translateY(-2px);
-    box-shadow: 0 6px 10px rgba(0,0,0,0.3);
 }
 
-#startScreen #shopButton {
-    background-image: linear-gradient(to bottom, #a29bfe, #6c5ce7); /* Purple gradient */
-    margin-top: 20px; /* Space it from the start button */
+#redeemStatusMessage {
+    margin-top: 8px;
+    font-size: 14px;
+    min-height: 1.2em; /* Reserve space to prevent layout shift */
 }
-#startScreen #shopButton:hover {
-    background-image: linear-gradient(to bottom, #b1a9ff, #7b6cfb);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 10px rgba(0,0,0,0.3);
+#redeemStatusMessage.success {
+    color: #55efc4; /* Green for success */
+    font-weight: bold;
+}
+#redeemStatusMessage.error {
+    color: #ff7675; /* Red for error */
+}
+
+/* Adjust startScreen padding if redeem section makes it too tall */
+#startScreen {
+    padding-top: 30px; /* Slightly reduce top/bottom padding */
+    padding-bottom: 30px;
+    /* max-height: 95vh; /* Optional: if it gets too tall */
+    /* overflow-y: auto; /* Optional: if content truly overflows */
 }
