@@ -133,14 +133,14 @@ document.addEventListener('DOMContentLoaded', () => {
         beaker: {
             img: beakerObstacleImg,
             visualWidth: 120,  // How wide the beaker image is
-            effectiveWidth: 90,// How wide its collision zone is
+            effectiveWidth: 50,// How wide its collision zone is
             hitboxInsetX: 15,  // Leniency inset from effectiveWidth edges
-            hitboxInsetYGapEdge: 10 // Leniency inset from gap edge
+            hitboxInsetYGapEdge: 20 // Leniency inset from gap edge
         },
         ruler: {
             img: rulerObstacleImg,
-            visualWidth: 60,   // Rulers are thinner
-            effectiveWidth: 40,
+            visualWidth: 140,   // Rulers are thinner
+            effectiveWidth: 70,
             hitboxInsetX: 5,
             hitboxInsetYGapEdge: 5 // Rulers are usually straight, less leniency needed at gap
         },
