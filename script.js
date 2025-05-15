@@ -149,13 +149,13 @@ document.addEventListener('DOMContentLoaded', () => {
             visualWidth: 150,  // Books are wider
             effectiveWidth: 120,
             hitboxInsetX: 15,
-            hitboxInsetYGapEdge: 15 // Books might have uneven edges
+            hitboxInsetYGapEdge: 30 // Books might have uneven edges
         }
     };
 
     // --- POWER-UP PROPERTIES ---
-    const POWERUP_SIZE = 50;
-    const POWERUP_SPAWN_CHANCE = 0.0085; // INCREASED from 0.0055
+    const POWERUP_SIZE = 100;
+    const POWERUP_SPAWN_CHANCE = 0.12; // INCREASED from 0.0055
     // ... (other power-up properties same as before) ...
     const SHIELD_DURATION = 540; const LOW_FUEL_THRESHOLD_PERCENT = 20;
     let canSpawnEmergencyBeans = true; const EMERGENCY_BEANS_COOLDOWN_FRAMES = 180;
