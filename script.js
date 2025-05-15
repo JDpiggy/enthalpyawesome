@@ -22,6 +22,152 @@ document.addEventListener('DOMContentLoaded', () => {
     const shopCharacterPreviewImage = document.getElementById('shopCharacterPreviewImage');
     const shopCharacterName = document.getElementById('shopCharacterName');
     const shopCharacterPriceStatus = document.getElementById('shopCharacterPriceStatus');
+    document.addEventListener('DOMContentLoaded', () => {
+    // --- DOM ELEMENT GRABBING ---
+    // ... (same as your previous version) ...
+    const redeemCodeInput = document.getElementById('redeemCodeInput'); // NEW
+    const redeemCodeButton = document.getElementById('redeemCodeButton'); // NEW
+    const redeemStatusMessage = document.getElementById('redeemStatusMessage'); // NEW
+    // ... (other consts for canvas, buttons, screens etc.)
+
+    // ... (GAME SETTINGS & GLOBAL VARIABLES - same) ...
+    // ... (CHARACTER DATA - same) ...
+    // ... (ASSET LOADING - same, ensure all assets are loaded) ...
+    // ... (SOUNDS - same, ensure 'purchase.wav' is set up) ...
+    // ... (ROCKET_PROPERTIES, OBSTACLE_PROPERTIES, POWERUP_PROPERTIES - same) ...
+    // ... (Rocket, Obstacle, PowerUp, Particle classes - same) ...
+    // ... (playSound, drawStartScreenCharacter, startScreenAnimationLoop - same) ...
+    // ... (localStorage functions, shop logic - updateCoinDisplay, renderCharacterShop, etc. - same) ...
+
+    // --- REDEEM CODE LOGIC ---
+    const redeemCodes = {
+        "imjaron": {
+            description: "Unlocks all Lali characters!",
+            action: () => {
+                let unlockedSomething = false;
+                charactersData.forEach(char => {
+                    if (!char.unlocked) {
+                        char.unlocked = true;
+                        unlockedSomething = true;
+                    }
+                });
+                if (unlockedSomething) {
+                    saveCharacterData(); // Save the new unlock status
+                    // If shop is open, re-render it. If not, it will be correct when opened.
+                    if (shopScreen.style.display !== 'none') {
+                        renderCharacterShop();
+                        updateShopPreview(shopPreviewCharacterId); // Refresh preview if it was one of the newly unlocked
+                    }
+                    return true; // Code was successful
+                }
+                return false; // No new characters were unlocked (already had them all)
+            }
+        },
+        // Example for a future code:
+        // "morecoins": {
+        //     description: "Grants 1000 bonus coins!",
+        //     action: () => {
+        //         coins += 1000;
+        //         saveCoins();
+        //         updateCoinDisplay();
+        //         return true;
+        //     }
+        // }
+    };
+
+    function handleRedeemCode() {
+        if (!redeemCodeInput || !redeemStatusMessage) return;
+
+        const enteredCode = redeemCodeInput.value.trim().toLowerCase(); // Normalize code
+        redeemCodeInput.value = ''; // Clear input
+
+        if (redeemCodes[enteredCode]) {
+            const codeEffect = redeemCodes[enteredCode];
+            const success = codeEffect.action(); // Execute the code's action
+
+            if (success) {
+                playSound(sounds.purchase); // Play sound on successful redemption
+                redeemStatusMessage.textContent = codeEffect.description || "Code redeemed successfully!";
+                redeemStatusMessage.className = 'success';
+            } else {
+                // Action might return false if, for example, all chars were already unlocked
+                redeemStatusMessage.textContent = "Code applied, but no new changes.";
+                redeemStatusMessage.className = 'success'; // Still a valid code
+            }
+        } else {
+            redeemStatusMessage.textContent = "Invalid code. Please try again.";
+            redeemStatusMessage.className = 'error';
+        }
+
+        redeemStatusMessage.style.display = 'block';
+        // Optional: Hide message after a few seconds
+        setTimeout(() => {
+            if (redeemStatusMessage) redeemStatusMessage.style.display = 'none';
+        }, 4000);
+    }
+
+
+    // --- MAIN GAME STATE FUNCTIONS ---
+    function initGame() {
+        // ... (existing initGame logic: loadGameData, reset vars, show startScreen, etc.) ...
+        if (gameState !== 'LOADING') loadGameData();
+        rocket = null; obstacles = []; powerUps = []; particles = [];
+        score = 0; frame = 0; gameSpeed = OBSTACLE_SPEED_INITIAL; // Assuming OBSTACLE_SPEED_INITIAL is defined
+
+        if(startScreen) startScreen.style.display = 'flex';
+        if(gameOverScreen) gameOverScreen.style.display = 'none';
+        if(shopScreen) shopScreen.style.display = 'none';
+        if(redeemStatusMessage) redeemStatusMessage.style.display = 'none'; // Hide redeem message on init
+
+        if (startButton) startButton.disabled = assetsLoaded < assetsToLoad;
+        if (shopButton) shopButton.disabled = assetsLoaded < assetsToLoad;
+        if (redeemCodeButton) redeemCodeButton.disabled = assetsLoaded < assetsToLoad; // Disable redeem button too if assets loading
+
+        updateUI(null);
+        if (ctx) ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+        isStartScreenLoopRunning = false;
+        if (gameState === 'START') {
+            const gameChar = getCurrentGameCharacter();
+            if (gameChar && gameChar.isReady) {
+                isStartScreenLoopRunning = true;
+                startScreenAnimationLoop();
+            }
+            if (backgroundMusic.isReady && backgroundMusic.paused) {
+                backgroundMusic.play().catch(e => console.warn("BG Music autoplay likely blocked on init.", e));
+            }
+        }
+    }
+
+    // ... (startGame - same as before) ...
+    // ... (gameOver - same as before) ...
+    // ... (handleInput, generateObstacles, generatePowerUps, trySpawnEmergencyBeans, checkCollisions - same as before) ...
+    // ... (updateGameObjects, drawGameObjects, gameLoop, updateUI - same as before) ...
+
+
+    // --- EVENT LISTENERS ---
+    // ... (existing listeners for startButton, restartButton, shopButton, backToMenuButton, window, canvas) ...
+    if (redeemCodeButton) { // NEW
+        redeemCodeButton.addEventListener('click', handleRedeemCode);
+    }
+    // Add Enter key listener for redeem input
+    if (redeemCodeInput) { // NEW
+        redeemCodeInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleRedeemCode();
+            }
+        });
+    }
+
+
+    // --- INITIALIZE GAME ---
+    // ... (same: loadGameData() then disable buttons until assets loaded by assetLoadManager calling initGame) ...
+    loadGameData();
+    if (startButton) startButton.disabled = true;
+    if (shopButton) shopButton.disabled = true;
+    if (redeemCodeButton) redeemCodeButton.disabled = true; // Also disable redeem button initially
+
+});
 
 
     // --- GAME SETTINGS & GLOBAL VARIABLES ---
