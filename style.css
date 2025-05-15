@@ -1,530 +1,14 @@
-@import url('https://fonts.googleapis.com/css2?family=Bangers&family=Roboto:wght@400;700&display=swap');
-
-body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    background-color: #1e272e; /* Darker, sophisticated background */
-    margin: 0;
-    font-family: 'Roboto', sans-serif;
-    color: white;
-    overflow: hidden;
-}
-
-.game-container {
-    position: relative;
-    border: 4px solid #303952; /* Slightly different border */
-    box-shadow: 0 0 30px rgba(0,0,0,0.7);
-    border-radius: 8px; /* More rounded container */
-}
-
-canvas {
-    display: block;
-    background-color: #87CEEB; /* Classic sky blue */
-}
-
-#ui-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    pointer-events: none;
-}
-
-#score, #highScore {
-    position: absolute;
-    font-size: 48px; /* Larger score text */
-    padding: 20px 25px;
-    text-shadow: 3px 3px 5px rgba(0,0,0,0.6);
-    font-family: 'Bangers', cursive;
-    letter-spacing: 1.5px;
-    color: #fbc531; /* Gold-ish color for score */
-}
-
-#score {
-    top: 25px;
-    left: 25px;
-}
-
-#highScore {
-    top: 25px;
-    right: 25px;
-}
-
-#fuelBarContainer {
-    position: absolute;
-    bottom: 25px; /* Ensuring it's well within view */
-    left: 25px;
-    font-size: 24px;
-    background-color: rgba(0,0,0,0.5);
-    padding: 12px 18px;
-    border-radius: 10px;
-}
-
-#fuelBar {
-    width: 220px;
-    height: 24px;
-    background-color: #e17055; /* Different fuel color */
-    border: 2px solid #0d0d0d;
-    border-radius: 6px;
-    margin-top: 6px;
-    transition: width 0.2s ease-out, background-color 0.3s ease;
-}
-
-
-#startScreen, #gameOverScreen {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(44, 62, 80, 0.92);
-    padding: 50px 60px;
-    border-radius: 20px; /* Nicer rounding */
-    text-align: center;
-    pointer-events: all;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.5);
-    min-width: 500px;
-    max-width: 70%;
-}
-
-#startScreen h1, #gameOverScreen h2 {
-    margin-top: 0;
-    margin-bottom: 35px;
-    color: #ff7f50; /* Coral title color */
-    font-size: 90px; /* Big, bold titles */
-    font-family: 'Bangers', cursive;
-    letter-spacing: 3px;
-    line-height: 1; /* Tighter line height for Bangers */
-    text-shadow: 4px 4px 0px rgba(0,0,0,0.25);
-}
-
-#startScreen p, #gameOverScreen p {
-    margin-bottom: 30px;
-    font-size: 22px;
-    line-height: 1.7;
-}
-
-#startScreen button, #gameOverScreen button, #toggleSoundButton {
-    padding: 18px 36px;
-    font-size: 22px;
-    background-image: linear-gradient(to bottom, #55efc4, #00b894); /* Gradient buttons */
-    color: #1e272e; /* Dark text on light button */
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    margin: 12px 8px;
-    transition: all 0.2s ease;
-    pointer-events: all;
-    text-transform: uppercase;
-    font-weight: 700; /* Bolder Roboto */
-    letter-spacing: 1.5px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-    font-family: 'Roboto', sans-serif;
-}
-
-#toggleSoundButton {
-    position: absolute;
-    bottom: 30px;
-    right: 30px;
-    background-image: linear-gradient(to bottom, #74b9ff, #0984e3); /* Blue gradient */
-    font-size: 18px;
-    padding: 14px 24px;
-}
-
-#startScreen button:hover, #gameOverScreen button:hover {
-    background-image: linear-gradient(to bottom, #69f2d0, #00c9a2);
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.4);
-}
-#toggleSoundButton:hover {
-    background-image: linear-gradient(to bottom, #82c0ff, #0a8cf8);
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.35);
-}
-
-#startScreen button:active, #gameOverScreen button:active, #toggleSoundButton:active {
-    transform: translateY(0px) scale(0.98);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.25);
-}
-
-
-#gameOverScreen p:nth-of-type(2) { /* "New High Score!" */
-    color: #fdcb6e; /* Brighter gold */
-    font-weight: normal; /* Bangers is already bold */
-    font-size: 36px;
-    font-family: 'Bangers', cursive;
-    letter-spacing: 2px;
-    margin-top: -10px;
-    margin-bottom: 30px;
-    display: none;
-}
-/* ... (all your existing CSS before #gameOverScreen) ... */
-
-#gameOverScreen {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(44, 62, 80, 0.92);
-    padding: 40px; /* Adjusted padding a bit */
-    border-radius: 20px;
-    text-align: center;
-    pointer-events: all;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.5);
-    min-width: 500px;
-    max-width: 70%;
-    display: flex; /* Use flexbox for better layout */
-    flex-direction: column; /* Stack items vertically */
-    align-items: center; /* Center items horizontally */
-}
-
-#gameOverScreen h2 { /* "Game Over!" title */
-    margin-top: 0;
-    margin-bottom: 25px; /* Space below title */
-    color: #ff7f50;
-    font-size: 90px;
-    font-family: 'Bangers', cursive;
-    letter-spacing: 3px;
-    line-height: 1;
-    text-shadow: 4px 4px 0px rgba(0,0,0,0.25);
-}
-
-/* --- NEW: Score Info Box on Game Over Screen --- */
-.score-info-box {
-    background-color: rgba(0, 0, 0, 0.25); /* Semi-transparent dark box */
-    padding: 20px 30px;
-    border-radius: 10px;
-    margin-bottom: 25px; /* Space below the score box */
-    min-width: 250px; /* Ensure it has some width */
-    box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
-}
-
-#gameOverScreen .score-info-box p { /* Paragraphs inside the score box */
-    margin-top: 5px;
-    margin-bottom: 10px;
-    font-size: 24px; /* Larger score text */
-    line-height: 1.4;
-    color: #dfe6e9; /* Lighter text color */
-}
-
-#gameOverScreen .score-info-box p#newHighScoreTextGameOver { /* Specifically for "New High Score!" */
-    color: #fdcb6e; /* Brighter gold */
-    font-family: 'Bangers', cursive;
-    font-size: 28px;
-    letter-spacing: 1px;
-    margin-top: 15px; /* More space above it */
-    display: none; /* Still hidden by default, controlled by JS */
-}
-/* --- END: Score Info Box --- */
-
-
-#gameOverScreen button#restartButton { /* Specifically the restart button */
-    padding: 18px 36px;
-    font-size: 22px;
-    /* ... (keep your existing button styles: gradient, font, etc.) ... */
-    background-image: linear-gradient(to bottom, #55efc4, #00b894);
-    color: #1e272e;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    margin-top: 10px; /* Adjusted margin if needed */
-    transition: all 0.2s ease;
-    pointer-events: all;
-    text-transform: uppercase;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-    font-family: 'Roboto', sans-serif;
-}
-
-#gameOverScreen button#restartButton:hover {
-    /* ... (keep existing hover styles) ... */
-    background-image: linear-gradient(to bottom, #69f2d0, #00c9a2);
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.4);
-}
-
-/* Append these styles to your existing style.css */
-
-/* ... (all your existing CSS) ... */
-
-#coinDisplayContainer {
-    position: absolute;
-    top: 90px; /* Position below score */
-    left: 25px;
-    font-size: 28px; /* Slightly smaller than score */
-    padding: 10px 15px;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-    font-family: 'Bangers', cursive;
-    letter-spacing: 1px;
-    color: #feca57; /* Coin yellow */
-    background-color: rgba(0,0,0,0.3);
-    border-radius: 8px;
-}
-
-#gameOverScreen .score-info-box p { /* General styling for p in score box */
-    margin-top: 8px;
-    margin-bottom: 8px;
-    font-size: 22px; /* Adjusted for more info */
-    line-height: 1.5;
-    color: #dfe6e9;
-}
-
-#gameOverScreen .score-info-box p#coinsEarnedDisplay, /* For the "Coins Earned:" label */
-#gameOverScreen .score-info-box p span#coinsEarned { /* For the actual coin number */
-    font-size: 22px;
-    color: #feca57; /* Coin yellow */
-}
-
-
-/* Character Shop Styles */
-#characterShop {
-    margin-top: 40px;
-    padding: 20px;
-    background-color: rgba(0,0,0,0.2);
-    border-radius: 15px;
-    width: 90%;
-    max-width: 700px; /* Max width for the shop */
-    box-sizing: border-box;
-}
-
-#characterShop h2 {
-    font-size: 48px; /* Smaller than main title */
-    color: #ff9f43; /* Orange-ish */
-    margin-bottom: 20px;
-    font-family: 'Bangers', cursive;
-    text-shadow: 3px 3px 0px rgba(0,0,0,0.2);
-}
-
-#characterSlotsContainer {
-    display: flex;
-    flex-wrap: wrap; /* Allow wrapping if many characters */
-    justify-content: center;
-    gap: 20px; /* Spacing between character slots */
-}
-
-.character-slot {
-    background-color: rgba(255,255,255,0.1);
-    border: 3px solid rgba(255,255,255,0.3);
-    border-radius: 10px;
-    padding: 15px;
-    width: 120px; /* Adjust as needed */
-    text-align: center;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    cursor: pointer;
-}
-
-.character-slot:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0,0,0,0.3);
-}
-
-.character-slot.selected {
-    border-color: #55efc4; /* Highlight selected character */
-    box-shadow: 0 0 15px #55efc4;
-    background-color: rgba(85, 239, 196, 0.2);
-}
-
-.character-slot img {
-    width: 80px;
-    height: 80px;
-    object-fit: contain; /* Or 'cover' depending on your images */
-    margin-bottom: 10px;
-    background-color: rgba(0,0,0,0.2); /* Placeholder bg if image is transparent */
-    border-radius: 5px;
-    border: 1px solid rgba(255,255,255,0.1);
-}
-.character-slot img.not-ready {
-    /* Style for when image isn't loaded, e.g., a placeholder color */
-    background-color: #333;
-}
-
-
-.character-slot .char-name {
-    font-size: 16px;
-    font-weight: bold;
-    color: #fff;
-    margin-bottom: 5px;
-    min-height: 35px; /* Ensure space for two lines if needed */
-}
-
-.character-slot .char-price, .character-slot .char-status {
-    font-size: 14px;
-    color: #feca57; /* Coin yellow for price */
-    margin-bottom: 10px;
-}
-.character-slot .char-status {
-    color: #55efc4; /* Green for "Owned" or "Selected" */
-}
-
-
-.character-slot button {
-    padding: 8px 12px;
-    font-size: 13px;
-    width: 100%; /* Make button fill slot width */
-    margin-top: auto; /* Pushes button to bottom if slot is flex column */
-    font-family: 'Roboto', sans-serif;
-    letter-spacing: 0.5px;
-}
-
-/* Adjust start/game over screen if shop makes it too tall */
-#startScreen {
-    padding: 30px 40px; /* Slightly reduce padding if needed */
-    min-width: 600px; /* Ensure it's wide enough for shop */
-    /* max-height: 90vh; might need this */
-    /* overflow-y: auto; if content overflows */
-}
-/* Append and modify these styles in your style.css */
-
-/* ... (all your existing CSS up to coin display) ... */
-
-#coinDisplayContainer {
-    position: absolute;
-    top: 140px; /* MOVED DOWN - Adjust as needed */
-    left: 25px;
-    font-size: 28px;
-    padding: 10px 15px;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-    font-family: 'Bangers', cursive;
-    letter-spacing: 1px;
-    color: #feca57;
-    background-color: rgba(0,0,0,0.3);
-    border-radius: 8px;
-}
-
-/* ... (rest of your existing CSS for scores, fuel bar, etc.) ... */
-
-/* Start Screen Button Adjustments */
-#startScreen button { /* General styling for buttons on start screen */
-    margin: 15px 8px; /* Increased margin a bit for spacing */
-}
-
-
-/* --- NEW: Character Shop Screen Styles --- */
-#shopScreen {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 90%;
-    max-width: 1000px; /* Adjust as needed */
-    height: 85vh; /* Adjust height */
-    max-height: 650px;
-    background-color: rgba(30, 39, 46, 0.95); /* Darker shop background */
-    padding: 25px;
-    border-radius: 20px;
-    text-align: center;
-    pointer-events: all;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-    display: flex; /* Changed to flex for overall layout */
-    flex-direction: column;
-    color: white;
-}
-
-#shopHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 2px solid rgba(255,255,255,0.2);
-}
-
-#shopHeader h2 {
-    font-size: 60px;
-    color: #ff9f43;
-    font-family: 'Bangers', cursive;
-    margin: 0;
-    text-shadow: 3px 3px 0px rgba(0,0,0,0.2);
-}
-
-#shopCoinDisplay {
-    font-size: 24px;
-    font-family: 'Bangers', cursive;
-    color: #feca57;
-    background-color: rgba(0,0,0,0.3);
-    padding: 8px 15px;
-    border-radius: 8px;
-}
-
-
-#shopContent {
-    display: flex;
-    flex-grow: 1; /* Allows content to fill available space */
-    overflow: hidden; /* Important for internal scrolling */
-    gap: 20px;
-}
-
-#shopPanelLeft {
-    flex: 1; /* Takes up proportional space */
-    padding: 15px;
-    background-color: rgba(0,0,0,0.2);
-    border-radius: 10px;
-    overflow-y: auto; /* Scroll for character list */
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-#shopPanelRight {
-    flex: 1.5; /* Takes up more space for the preview */
-    padding: 20px;
-    background-color: rgba(0,0,0,0.15);
-    border-radius: 10px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-#shopCharacterPreviewImage {
-    max-width: 80%;
-    max-height: 250px; /* Adjust as needed */
-    height: auto;
-    object-fit: contain;
-    margin-bottom: 20px;
-    background-color: rgba(0,0,0,0.1); /* Slight bg for transparent parts */
-    border-radius: 10px;
-    padding: 10px;
-    border: 1px solid rgba(255,255,255,0.1);
-}
-#shopCharacterPreviewImage.not-ready {
-    background-color: #444;
-    min-height: 200px; /* Placeholder size */
-}
-
-
-#shopCharacterName {
-    font-size: 32px;
-    font-family: 'Bangers', cursive;
-    color: #fff;
-    margin-bottom: 10px;
-}
-
-#shopCharacterPriceStatus {
-    font-size: 20px;
-    color: #feca57; /* Yellow for price */
-    margin-bottom: 15px;
-}
-#shopCharacterPriceStatus.owned {
-    color: #55efc4; /* Green for owned/selected */
-}
-
+/* ... (your existing CSS) ... */
 
 /* Character Slot Styling within the Shop */
 #shopPanelLeft .character-slot {
     background-color: rgba(255,255,255,0.08);
     border: 2px solid rgba(255,255,255,0.2);
     border-radius: 8px;
-    padding: 15px;
-    display: flex; /* For aligning items inside the slot */
+    padding: 10px; /* Adjusted padding */
+    display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 10px; /* Adjusted gap */
     transition: background-color 0.2s ease, border-color 0.2s ease;
     cursor: pointer;
 }
@@ -534,54 +18,65 @@ canvas {
     border-color: rgba(255,255,255,0.4);
 }
 
-#shopPanelLeft .character-slot.selected-in-shop { /* Different from game 'selected' */
+#shopPanelLeft .character-slot.selected-in-shop {
     border-color: #55efc4;
     background-color: rgba(85, 239, 196, 0.15);
 }
 
 #shopPanelLeft .character-slot img {
-    width: 70px; /* Slightly smaller for list view */
-    height: 70px;
+    width: 60px; /* Slightly smaller if needed */
+    height: 60px;
     object-fit: contain;
     background-color: rgba(0,0,0,0.2);
     border-radius: 5px;
     border: 1px solid rgba(255,255,255,0.1);
+    flex-shrink: 0; /* Prevent image from shrinking */
 }
 #shopPanelLeft .character-slot img.not-ready {
     background-color: #333;
 }
 
 .char-info-shop {
-    flex-grow: 1;
+    flex-grow: 1; /* Allow info to take up available space */
     text-align: left;
+    min-width: 0; /* Important for flex items containing text that might overflow */
 }
 
 #shopPanelLeft .character-slot .char-name {
-    font-size: 18px;
+    font-size: 16px; /* Adjusted font size */
     font-weight: bold;
     color: #fff;
-    margin-bottom: 5px;
+    margin-bottom: 3px; /* Adjusted margin */
+    white-space: nowrap; /* Prevent name from wrapping if too long, or use overflow */
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 #shopPanelLeft .character-slot .char-price,
 #shopPanelLeft .character-slot .char-status {
-    font-size: 14px;
+    font-size: 13px; /* Adjusted font size */
     color: #feca57;
-    margin-bottom: 8px;
+    margin-bottom: 5px; /* Adjusted margin */
 }
 #shopPanelLeft .character-slot .char-status {
     color: #55efc4;
 }
 
-#shopPanelLeft .character-slot button {
-    padding: 8px 15px;
-    font-size: 14px;
+/* NEW class for the button container */
+.shop-button-container {
     margin-left: auto; /* Pushes button to the right */
-    /* Use existing button styles or define new ones */
+    flex-shrink: 0; /* Prevent button container from shrinking */
+}
+
+#shopPanelLeft .character-slot button {
+    padding: 7px 12px; /* Adjusted padding */
+    font-size: 13px; /* Adjusted font size */
+    /* margin-left: auto; Removed from here, handled by container */
     background-image: linear-gradient(to bottom, #74b9ff, #0984e3);
     color: white;
     border:none;
     border-radius: 6px;
+    white-space: nowrap; /* Prevent button text from wrapping */
 }
 #shopPanelLeft .character-slot button:disabled {
     background-image: linear-gradient(to bottom, #999, #777);
@@ -590,27 +85,4 @@ canvas {
 }
 
 
-#shopScreen #backToMenuButton {
-    /* Style similar to other main buttons */
-    padding: 15px 30px;
-    font-size: 18px;
-    margin-top: auto; /* Pushes to bottom of flex container */
-    width: fit-content;
-    align-self: center; /* Center it horizontally */
-    background-image: linear-gradient(to bottom, #ff7675, #d63031); /* Reddish */
-}
-#shopScreen #backToMenuButton:hover {
-    background-image: linear-gradient(to bottom, #ff8b8a, #e04443);
-}
-
-/* Ensure start screen takes up space if shop is not visible */
-#startScreen {
-    /* ... your existing #startScreen styles ... */
-    /* Add display flex if not already there to center content */
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-}
-
-/* Remove the old #characterShop and related styles from within #startScreen if they exist */
+/* ... (rest of your CSS) ... */
