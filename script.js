@@ -45,10 +45,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- CHARACTER DATA & ASSET PATHS ---
     let charactersData = [
         { id: 'lali_classic', name: 'Lali Classic', imageSrc: 'assets/tiles/lali_classic.png', price: 0, imageObj: new Image(), isReady: false, unlocked: true },
-        { id: 'lali_super', name: 'Super Lali', imageSrc: 'assets/tiles/lali_super.png', price: 500, imageObj: new Image(), isReady: false, unlocked: false },
-        { id: 'lali_robo', name: 'Robo Lali', imageSrc: 'assets/tiles/lali_robo.png', price: 1500, imageObj: new Image(), isReady: false, unlocked: false },
-        { id: 'lali_ninja', name: 'Ninja Lali', imageSrc: 'assets/tiles/lali_ninja.png', price: 3000, imageObj: new Image(), isReady: false, unlocked: false },
-        { id: 'lali_golden', name: 'Golden Lali', imageSrc: 'assets/tiles/lali_golden.png', price: 7500, imageObj: new Image(), isReady: false, unlocked: false },
+        { id: 'lali_super', name: 'Super Lali', imageSrc: 'assets/tiles/lali_super.png', price: 200, imageObj: new Image(), isReady: false, unlocked: false },
+        { id: 'lali_ninja', name: 'Ninja Lali', imageSrc: 'assets/tiles/lali_ninja.png', price: 500, imageObj: new Image(), isReady: false, unlocked: false },
+         { id: 'lali_robo', name: 'Robo Lali', imageSrc: 'assets/tiles/lali_robo.png', price: 1200, imageObj: new Image(), isReady: false, unlocked: false },
+        { id: 'lali_golden', name: 'Golden Lali', imageSrc: 'assets/tiles/lali_golden.png', price: 3000, imageObj: new Image(), isReady: false, unlocked: false },
     ];
     let currentSelectedCharacterId = 'lali_classic';
     let shopPreviewCharacterId = 'lali_classic';
@@ -100,8 +100,8 @@ document.addEventListener('DOMContentLoaded', () => {
         ruler:     { img: rulerObstacleImg,     visualWidth: 60,  effectiveWidth: 40,  hitboxInsetX: 5,  hitboxInsetYGapEdge: 5  },
         bookstack: { img: bookstackObstacleImg, visualWidth: 150, effectiveWidth: 120, hitboxInsetX: 15, hitboxInsetYGapEdge: 15 }
     };
-    const POWERUP_SIZE = 50; const POWERUP_SPAWN_CHANCE = 0.0085; const SHIELD_DURATION = 540;
-    const LOW_FUEL_THRESHOLD_PERCENT = 20; let canSpawnEmergencyBeans = true;
+    const POWERUP_SIZE = 100; const POWERUP_SPAWN_CHANCE = 0.011; const SHIELD_DURATION = 540;
+    const LOW_FUEL_THRESHOLD_PERCENT = 25; let canSpawnEmergencyBeans = true;
     const EMERGENCY_BEANS_COOLDOWN_FRAMES = 180; let emergencyBeansCooldownTimer = 0;
 
     class Rocket { /* ... (same as previous version) ... */
