@@ -57,12 +57,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const rulerObstacleImg = new Image(); rulerObstacleImg.src = 'assets/tiles/ruler_obstacle.png'; rulerObstacleImg.isReady = false;
     const bookstackObstacleImg = new Image(); bookstackObstacleImg.src = 'assets/tiles/bookstack_obstacle.png'; bookstackObstacleImg.isReady = false;
     const fuelPowerUpImg = new Image(); fuelPowerUpImg.src = 'assets/tiles/beans-removebg-preview.png'; fuelPowerUpImg.isReady = false;
-    const backgroundMusic = new Audio(); backgroundMusic.isReady = false;
     const backgroundImg = new Image(); backgroundImg.src = 'assets/tiles/background_sky.png'; backgroundImg.isReady = false;
     let backgroundX = 0;
     const BACKGROUND_SCROLL_SPEED_FACTOR = 0.3;
 
-    let assetsToLoad = 2 + 1 + charactersData.length + 2 + 1 + 1; // obstacles(beaker), fuel, music, chars, 2 new obstacles, background
+    let assetsToLoad = 2 + 1 + charactersData.length + 2 + 1 ; // obstacles(beaker), fuel, music, chars, 2 new obstacles, background
     let assetsLoaded = 0;
 
     function getCharacterById(id) { return charactersData.find(char => char.id === id) || charactersData[0]; }
@@ -91,11 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fuelPowerUpImg.onerror = () => { fuelPowerUpImg.isReady = false; console.error("Fuel Image fail"); assetLoadManager("Fuel (fail)"); };
     backgroundImg.onload = () => { backgroundImg.isReady = true; assetLoadManager("Background Image"); };
     backgroundImg.onerror = () => { backgroundImg.isReady = false; console.error("Background Image fail"); assetLoadManager("Background Image (fail)"); };
-    backgroundMusic.src = 'assets/sounds/background_music.mp3'; backgroundMusic.loop = true; backgroundMusic.volume = 0.3;
-    backgroundMusic.oncanplaythrough = () => { backgroundMusic.isReady = true; assetLoadManager("Background Music"); };
-    backgroundMusic.onerror = () => { backgroundMusic.isReady = false; console.error("BG Music fail"); assetLoadManager("Music (fail)"); };
-    try { backgroundMusic.load(); } catch (e) { console.error("Music load() call fail:", e); }
-
+    
     const sounds = {
         flap: new Audio(), score: new Audio(), hit: new Audio(),
         powerup: new Audio(), fuelEmpty: new Audio(), purchase: new Audio()
