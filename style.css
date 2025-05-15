@@ -249,8 +249,133 @@ canvas {
     box-shadow: 0 6px 12px rgba(0,0,0,0.4);
 }
 
-/* Remove the old p:nth-of-type(2) styling if it's not needed elsewhere,
-   or ensure it doesn't conflict with the new .score-info-box p#newHighScoreTextGameOver */
-/* #gameOverScreen p:nth-of-type(2) { ... old style ... } */
+/* Append these styles to your existing style.css */
 
-/* ... (rest of your CSS) ... */
+/* ... (all your existing CSS) ... */
+
+#coinDisplayContainer {
+    position: absolute;
+    top: 90px; /* Position below score */
+    left: 25px;
+    font-size: 28px; /* Slightly smaller than score */
+    padding: 10px 15px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    font-family: 'Bangers', cursive;
+    letter-spacing: 1px;
+    color: #feca57; /* Coin yellow */
+    background-color: rgba(0,0,0,0.3);
+    border-radius: 8px;
+}
+
+#gameOverScreen .score-info-box p { /* General styling for p in score box */
+    margin-top: 8px;
+    margin-bottom: 8px;
+    font-size: 22px; /* Adjusted for more info */
+    line-height: 1.5;
+    color: #dfe6e9;
+}
+
+#gameOverScreen .score-info-box p#coinsEarnedDisplay, /* For the "Coins Earned:" label */
+#gameOverScreen .score-info-box p span#coinsEarned { /* For the actual coin number */
+    font-size: 22px;
+    color: #feca57; /* Coin yellow */
+}
+
+
+/* Character Shop Styles */
+#characterShop {
+    margin-top: 40px;
+    padding: 20px;
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 15px;
+    width: 90%;
+    max-width: 700px; /* Max width for the shop */
+    box-sizing: border-box;
+}
+
+#characterShop h2 {
+    font-size: 48px; /* Smaller than main title */
+    color: #ff9f43; /* Orange-ish */
+    margin-bottom: 20px;
+    font-family: 'Bangers', cursive;
+    text-shadow: 3px 3px 0px rgba(0,0,0,0.2);
+}
+
+#characterSlotsContainer {
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping if many characters */
+    justify-content: center;
+    gap: 20px; /* Spacing between character slots */
+}
+
+.character-slot {
+    background-color: rgba(255,255,255,0.1);
+    border: 3px solid rgba(255,255,255,0.3);
+    border-radius: 10px;
+    padding: 15px;
+    width: 120px; /* Adjust as needed */
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.character-slot:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.3);
+}
+
+.character-slot.selected {
+    border-color: #55efc4; /* Highlight selected character */
+    box-shadow: 0 0 15px #55efc4;
+    background-color: rgba(85, 239, 196, 0.2);
+}
+
+.character-slot img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain; /* Or 'cover' depending on your images */
+    margin-bottom: 10px;
+    background-color: rgba(0,0,0,0.2); /* Placeholder bg if image is transparent */
+    border-radius: 5px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+.character-slot img.not-ready {
+    /* Style for when image isn't loaded, e.g., a placeholder color */
+    background-color: #333;
+}
+
+
+.character-slot .char-name {
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 5px;
+    min-height: 35px; /* Ensure space for two lines if needed */
+}
+
+.character-slot .char-price, .character-slot .char-status {
+    font-size: 14px;
+    color: #feca57; /* Coin yellow for price */
+    margin-bottom: 10px;
+}
+.character-slot .char-status {
+    color: #55efc4; /* Green for "Owned" or "Selected" */
+}
+
+
+.character-slot button {
+    padding: 8px 12px;
+    font-size: 13px;
+    width: 100%; /* Make button fill slot width */
+    margin-top: auto; /* Pushes button to bottom if slot is flex column */
+    font-family: 'Roboto', sans-serif;
+    letter-spacing: 0.5px;
+}
+
+/* Adjust start/game over screen if shop makes it too tall */
+#startScreen {
+    padding: 30px 40px; /* Slightly reduce padding if needed */
+    min-width: 600px; /* Ensure it's wide enough for shop */
+    /* max-height: 90vh; might need this */
+    /* overflow-y: auto; if content overflows */
+}
