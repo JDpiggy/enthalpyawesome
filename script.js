@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const OBSTACLE_TYPES = {
         beaker:    { img: beakerObstacleImg,    visualWidth: 120, effectiveWidth: 50,  hitboxInsetX: 15, hitboxInsetYGapEdge: 30 },
         ruler:     { img: rulerObstacleImg,     visualWidth: 60,  effectiveWidth: 40,  hitboxInsetX: 5,  hitboxInsetYGapEdge: 5  },
-        bookstack: { img: bookstackObstacleImg, visualWidth: 150, effectiveWidth: 120, hitboxInsetX: 15, hitboxInsetYGapEdge: 15 }
+        bookstack: { img: bookstackObstacleImg, visualWidth: 150, effectiveWidth: 120, hitboxInsetX: 25, hitboxInsetYGapEdge: 50 }
     };
     const SHIELD_POWERUP_SIZE = 70; // Or your desired size for the shield
     const FUEL_POWERUP_SIZE = 100;    // Or your desired size for the fuel/bean
