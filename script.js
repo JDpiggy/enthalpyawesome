@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let score = 0, highScore = 0, frame = 0, gameSpeed = 2.0;
     let gameState = 'LOADING';
     let coins = 0;
-    let initialAssetsHaveLoaded = false; // <-- NEW FLAG to prevent multiple initializations
+    let initialAssetsHaveLoaded = false;
 
     // --- CHARACTER DATA & ASSET PATHS ---
     let charactersData = [
@@ -85,8 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
             initGame();
         } else if (assetsLoaded >= assetsToLoad && initialAssetsHaveLoaded) {
             console.log("Asset loaded/retried after initial setup. Game should already be initialized or initializing via initGame.");
-            // If buttons ever get stuck disabled, we might need to explicitly enable them here too,
-            // but initGame() being called (even if by restart) should handle it.
         }
     }
 
@@ -138,7 +136,45 @@ document.addEventListener('DOMContentLoaded', () => {
         constructor() { this.x = GAME_WIDTH / 6; this.y = GAME_HEIGHT / 2 - ROCKET_HEIGHT / 2; this.width = ROCKET_WIDTH; this.height = ROCKET_HEIGHT; this.velocityY = 0; this.fuel = MAX_FUEL; this.shieldActive = false; this.shieldTimer = 0; this.character = getCurrentGameCharacter(); }
         flap() { if (this.fuel > 0 && gameState === 'PLAYING') { this.velocityY = FLAP_STRENGTH; this.fuel -= FUEL_CONSUMPTION; if (this.fuel < 0) this.fuel = 0; playSound(sounds.flap); for (let i = 0; i < 8; i++) { particles.push(new Particle(this.x + this.width / 2, this.y + this.height * 0.9, 'thrust'));}} else if (gameState === 'PLAYING') { playSound(sounds.fuelEmpty); }}
         update() { this.velocityY += GRAVITY; this.y += this.velocityY; if (this.fuel < MAX_FUEL) { this.fuel += FUEL_REGEN_RATE; if (this.fuel > MAX_FUEL) this.fuel = MAX_FUEL; } if (this.shieldActive) { this.shieldTimer--; if (this.shieldTimer <= 0) this.shieldActive = false; } if (this.y < 0) { this.y = 0; this.velocityY = 0; }}
-        draw() { const charImg = this.character.imageObj; if (this.character.isReady && charImg.complete && charImg.naturalWidth !== 0) { ctx.drawImage(charImg, this.x, this.y, this.width, this.height); } else { ctx.fillStyle = 'purple'; ctx.fillRect(this.x, this.y, this.width, this.height); } if (this.shieldActive) { ctx.strokeStyle = 'rgba(0, 255, 255, 0.8)'; ctx.lineWidth = 5; ctx.beginPath(); const r = Math.max(this.width, this.height) * 0.8; ctx.arc(this.x + this.width / 2, this.y + this.height / 2, r, 0, Math.PI * 2); ctx.stroke(); }}
+        draw() {
+            const charImg = this.character.imageObj;
+            if (this.character.isReady && charImg.complete && charImg.naturalWidth !== 0 && charImg.naturalHeight !== 0) {
+                const boxW = this.width;
+                const boxH = this.height;
+                const imgW = charImg.naturalWidth;
+                const imgH = charImg.naturalHeight;
+
+                const boxAspectRatio = boxW / boxH;
+                const imgAspectRatio = imgW / imgH;
+
+                let drawWidth, drawHeight;
+
+                if (imgAspectRatio > boxAspectRatio) {
+                    drawWidth = boxW;
+                    drawHeight = drawWidth / imgAspectRatio;
+                } else {
+                    drawHeight = boxH;
+                    drawWidth = drawHeight * imgAspectRatio;
+                }
+
+                const drawX = this.x + (boxW - drawWidth) / 2;
+                const drawY = this.y + (boxH - drawHeight) / 2;
+
+                ctx.drawImage(charImg, drawX, drawY, drawWidth, drawHeight);
+            } else {
+                ctx.fillStyle = 'purple';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+            }
+
+            if (this.shieldActive) {
+                ctx.strokeStyle = 'rgba(0, 255, 255, 0.8)';
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                const r = Math.max(this.width, this.height) * 0.8;
+                ctx.arc(this.x + this.width / 2, this.y + this.height / 2, r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
     }
     class Obstacle {
         constructor(x, initialGapY, movesVertically, type) { this.x = x; this.type = type; const P = OBSTACLE_TYPES[this.type]; this.image = P.img; this.visualWidth = P.visualWidth; this.effectiveWidth = P.effectiveWidth; this.hitboxInsetX = P.hitboxInsetX; this.hitboxInsetYGapEdge = P.hitboxInsetYGapEdge; this.initialGapY = initialGapY; this.currentGapY = initialGapY; this.movesVertically = movesVertically; this.verticalDirection = Math.random() > 0.5 ? 1 : -1; this.passed = false; this.topPart = { y: 0, height: 0 }; this.bottomPart = { y: 0, height: 0 }; this._calculateDimensions(); }
@@ -206,8 +242,47 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function playSound(s) { if (s && s.src && s.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) { s.currentTime = 0; s.play().catch(e => console.warn(`Sound play fail ${s.src.split('/').pop()}:`, e)); } else if (s && s.src) { console.warn(`Sound ${s.src.split('/').pop()} not ready. St: ${s.readyState}, Nw: ${s.networkState}`); if (s.networkState === HTMLMediaElement.NETWORK_NO_SOURCE || s.networkState === HTMLMediaElement.NETWORK_EMPTY) { if (s.src) s.load(); }}}
+    
     let startScreenAnimFrame = 0; const startScreenCharYOffsetMax = 25; const startScreenCharBobSpeed = 0.03; let isStartScreenLoopRunning = false;
-    function drawStartScreenCharacter(bO) { const gC = getCurrentGameCharacter(); if (!gC || !gC.isReady || !ctx) return; const cI = gC.imageObj; const sF = 2.8; const cW = ROCKET_WIDTH*sF; const cH = ROCKET_HEIGHT*sF; const cX = GAME_WIDTH*0.80-cW/2; const cYB = GAME_HEIGHT/2-cH/2; const cY = cYB+bO; if (cI.complete && cI.naturalWidth !== 0) ctx.drawImage(cI, cX, cY, cW, cH); else { ctx.fillStyle = 'grey'; ctx.fillRect(cX, cY, cW, cH); }}
+    
+    function drawStartScreenCharacter(bobOffset) {
+        const gC = getCurrentGameCharacter();
+        if (!gC || !gC.isReady || !ctx) return;
+        const charImg = gC.imageObj;
+
+        const scaleFactor = 2.8;
+        const boxW_target = ROCKET_WIDTH * scaleFactor;
+        const boxH_target = ROCKET_HEIGHT * scaleFactor;
+
+        const boxX_corner = GAME_WIDTH * 0.80 - boxW_target / 2;
+        const boxY_corner = GAME_HEIGHT / 2 - boxH_target / 2 + bobOffset;
+
+        if (charImg.complete && charImg.naturalWidth !== 0 && charImg.naturalHeight !== 0) {
+            const imgW = charImg.naturalWidth;
+            const imgH = charImg.naturalHeight;
+            const boxAspectRatio = boxW_target / boxH_target;
+            const imgAspectRatio = imgW / imgH;
+
+            let drawWidth, drawHeight;
+
+            if (imgAspectRatio > boxAspectRatio) {
+                drawWidth = boxW_target;
+                drawHeight = drawWidth / imgAspectRatio;
+            } else {
+                drawHeight = boxH_target;
+                drawWidth = drawHeight * imgAspectRatio;
+            }
+            
+            const drawX = boxX_corner + (boxW_target - drawWidth) / 2;
+            const drawY = boxY_corner + (boxH_target - drawHeight) / 2;
+            
+            ctx.drawImage(charImg, drawX, drawY, drawWidth, drawHeight);
+        } else {
+            ctx.fillStyle = 'grey';
+            ctx.fillRect(boxX_corner, boxY_corner, boxW_target, boxH_target);
+        }
+    }
+
     function startScreenAnimationLoop() { if (gameState !== 'START' || !isStartScreenLoopRunning || (startScreen && startScreen.style.display === 'none') ) { isStartScreenLoopRunning = false; return; } if(ctx){ctx.clearRect(0,0,GAME_WIDTH,GAME_HEIGHT); drawBackground();} startScreenAnimFrame++; const bO = Math.sin(startScreenAnimFrame*startScreenCharBobSpeed)*startScreenCharYOffsetMax; drawStartScreenCharacter(bO); requestAnimationFrame(startScreenAnimationLoop); }
 
     function loadGameData() { coins = parseInt(localStorage.getItem('flappyLaliCoins_v2'))||0; highScore = parseInt(localStorage.getItem('flappyLaliFartV2_hs'))||0; currentSelectedCharacterId = localStorage.getItem('flappyLaliSelectedChar_v2')||'lali_classic'; shopPreviewCharacterId = currentSelectedCharacterId; const uC = JSON.parse(localStorage.getItem('flappyLaliUnlockedChars_v2')); if (uC && Array.isArray(uC)) { charactersData.forEach(c => { c.unlocked = uC.includes(c.id); }); } const cC = getCharacterById('lali_classic'); if (cC) cC.unlocked = true; else { console.error("Classic Character definition not found!"); charactersData[0].unlocked = true;} const sel = getCharacterById(currentSelectedCharacterId); if (!sel||!sel.unlocked) { currentSelectedCharacterId = 'lali_classic'; shopPreviewCharacterId = 'lali_classic'; localStorage.setItem('flappyLaliSelectedChar_v2', currentSelectedCharacterId); } updateCoinDisplay(); }
@@ -222,16 +297,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleRedeemCode() { if(!redeemCodeInput||!redeemStatusMessage)return; const eC=redeemCodeInput.value.trim().toLowerCase(); redeemCodeInput.value=''; if(redeemCodes[eC]){const cE=redeemCodes[eC];const succ=cE.action();if(succ){playSound(sounds.purchase);redeemStatusMessage.textContent=cE.description||"Code redeemed!";redeemStatusMessage.className='success';}else{redeemStatusMessage.textContent="Code applied, no new changes.";redeemStatusMessage.className='success';}}else{redeemStatusMessage.textContent="Invalid code.";redeemStatusMessage.className='error';} redeemStatusMessage.style.display='block'; setTimeout(()=>{if(redeemStatusMessage)redeemStatusMessage.style.display='none';},4000);}
 
     function initGame() {
-        if (gameState !== 'LOADING' && !initialAssetsHaveLoaded) { // Only load game data if not already loaded via asset manager
+        if (gameState !== 'LOADING' && !initialAssetsHaveLoaded) {
              loadGameData();
         }
-        // This function will be called by assetLoadManager when assets are ready,
-        // or by restart button.
-        // Reset game state variables for a new game session
         rocket = null; obstacles = []; powerUps = []; particles = [];
         score = 0; frame = 0; gameSpeed = OBSTACLE_SPEED_INITIAL;
-        canSpawnEmergencyBeans = true; // Reset for new game
-        emergencyBeansCooldownTimer = 0; // Reset for new game
+        canSpawnEmergencyBeans = true; 
+        emergencyBeansCooldownTimer = 0; 
         
         if(startScreen)startScreen.style.display='flex';
         if(gameOverScreen)gameOverScreen.style.display='none';
@@ -248,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
         isStartScreenLoopRunning=false; 
         if(gameState==='START' && allAssetsReady){
             const gC=getCurrentGameCharacter();
-            if(gC && gC.isReady){ // Check if current character image is ready for animation
+            if(gC && gC.isReady){
                 isStartScreenLoopRunning=true;
                 startScreenAnimationLoop();
             }
@@ -264,10 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(startScreen)startScreen.style.display='none';
         if(shopScreen)shopScreen.style.display='none';
         if(gameOverScreen)gameOverScreen.style.display='none';
-        rocket=new Rocket(); // Creates new rocket with fresh fuel, etc.
-        // obstacles, powerUps, particles are already reset in initGame if called by restart,
-        // or are fresh here if initGame was called by asset manager.
-        // For robustness, ensure they are clear if startGame can be called without initGame prior.
+        rocket=new Rocket(); 
         obstacles=[]; powerUps=[]; particles=[];
         score=0; frame=0; gameSpeed=OBSTACLE_SPEED_INITIAL;
         canSpawnEmergencyBeans=true; emergencyBeansCooldownTimer=0;
@@ -350,10 +419,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if(redeemCodeInput){redeemCodeInput.addEventListener('keypress',(e)=>{if(e.key==='Enter'){handleRedeemCode();}});}
     window.addEventListener('keydown',handleInput); if(canvas){canvas.addEventListener('mousedown',handleInput);canvas.addEventListener('touchstart',handleInput,{passive:false});}
 
-    loadGameData(); // Load saved data first
-    // Disable buttons initially. assetLoadManager will call initGame, which enables them when assets are ready.
+    loadGameData();
     if(startButton)startButton.disabled=true;
     if(shopButton)shopButton.disabled=true;
     if(redeemCodeButton)redeemCodeButton.disabled=true;
-    // The asset loading process will call initGame() when done.
 });
