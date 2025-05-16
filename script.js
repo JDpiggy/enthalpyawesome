@@ -41,16 +41,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let score = 0, highScore = 0, frame = 0, gameSpeed = 2.0;
     let gameState = 'LOADING';
     let coins = 0;
+    let initialAssetsHaveLoaded = false; // <-- NEW FLAG to prevent multiple initializations
 
     // --- CHARACTER DATA & ASSET PATHS ---
     let charactersData = [
         { id: 'lali_classic', name: 'Lali Classic', imageSrc: 'assets/tiles/lali_classic.png', price: 0, imageObj: new Image(), isReady: false, unlocked: true },
-        { id: 'lali_banana', name: 'Banana Lali', imageSrc: 'assets/tiles/banana_lali.png', price: 100, imageObj: new Image(), isReady: false, unlocked: false }, // <-- NEW CHARACTER
+        { id: 'lali_banana', name: 'Banana Lali', imageSrc: 'assets/tiles/banana_lali.png', price: 100, imageObj: new Image(), isReady: false, unlocked: false },
         { id: 'lali_super', name: 'Super Lali', imageSrc: 'assets/tiles/lali_super.png', price: 200, imageObj: new Image(), isReady: false, unlocked: false },
-        { id: 'lali_ninja', name: 'Ninja Lali', imageSrc: 'assets/tiles/lali_ninja.png', price: 300, imageObj: new Image(), isReady: false, unlocked: false },     // Price Updated
-        { id: 'lali_robo', name: 'Robo Lali', imageSrc: 'assets/tiles/lali_robo.png', price: 600, imageObj: new Image(), isReady: false, unlocked: false },       // Price Updated
-        { id: 'lali_golden', name: 'Golden Lali', imageSrc: 'assets/tiles/lali_golden.png', price: 1000, imageObj: new Image(), isReady: false, unlocked: false },   // Price Updated
-        { id: 'lali_kawaii', name: 'Kawaii Lali', imageSrc: 'assets/tiles/kawaii_lali.png', price: 1600, imageObj: new Image(), isReady: false, unlocked: false }   // Price Updated
+        { id: 'lali_ninja', name: 'Ninja Lali', imageSrc: 'assets/tiles/lali_ninja.png', price: 300, imageObj: new Image(), isReady: false, unlocked: false },
+        { id: 'lali_robo', name: 'Robo Lali', imageSrc: 'assets/tiles/lali_robo.png', price: 600, imageObj: new Image(), isReady: false, unlocked: false },
+        { id: 'lali_golden', name: 'Golden Lali', imageSrc: 'assets/tiles/lali_golden.png', price: 1000, imageObj: new Image(), isReady: false, unlocked: false },
+        { id: 'lali_kawaii', name: 'Kawaii Lali', imageSrc: 'assets/tiles/kawaii_lali.png', price: 1600, imageObj: new Image(), isReady: false, unlocked: false }
     ];
     let currentSelectedCharacterId = 'lali_classic';
     let shopPreviewCharacterId = 'lali_classic';
@@ -60,14 +61,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const rulerObstacleImg = new Image(); rulerObstacleImg.src = 'assets/tiles/ruler_obstacle.png'; rulerObstacleImg.isReady = false;
     const bookstackObstacleImg = new Image(); bookstackObstacleImg.src = 'assets/tiles/bookstack_obstacle.png'; bookstackObstacleImg.isReady = false;
     const fuelPowerUpImg = new Image(); fuelPowerUpImg.src = 'assets/tiles/beans-removebg-preview.png'; fuelPowerUpImg.isReady = false;
-    const shieldPowerUpImg = new Image(); shieldPowerUpImg.src = 'assets/tiles/your_shield_image.png'; // Ensure this path is correct and image exists
+    const shieldPowerUpImg = new Image(); shieldPowerUpImg.src = 'assets/tiles/your_shield_image.png';
     shieldPowerUpImg.isReady = false;
     const backgroundMusic = new Audio(); backgroundMusic.isReady = false;
     const backgroundImg = new Image(); backgroundImg.src = 'assets/tiles/background_sky.png'; backgroundImg.isReady = false;
     let backgroundX = 0;
     const BACKGROUND_SCROLL_SPEED_FACTOR = 0.3;
 
-    // assetsToLoad: characters + 3 obstacles + fuelImg + shieldImg + music + background
     let assetsToLoad = charactersData.length + 3 + 1 + 1 + 1 + 1;
     let assetsLoaded = 0;
 
@@ -76,11 +76,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function assetLoadManager(assetName = "Generic asset") {
         assetsLoaded++;
-        console.log(`${assetName} loaded. Assets: ${assetsLoaded}/${assetsToLoad}`);
-        if (assetsLoaded >= assetsToLoad) {
-            console.log("All critical assets loading attempted.");
-            gameState = 'START';
+        console.log(`${assetName} loaded. Assets: ${assetsLoaded}/${assetsToLoad} (Initial load flag: ${initialAssetsHaveLoaded})`);
+
+        if (assetsLoaded >= assetsToLoad && !initialAssetsHaveLoaded) {
+            initialAssetsHaveLoaded = true; 
+            console.log("All critical assets successfully loaded for the first time. Initializing game.");
+            gameState = 'START'; 
             initGame();
+        } else if (assetsLoaded >= assetsToLoad && initialAssetsHaveLoaded) {
+            console.log("Asset loaded/retried after initial setup. Game should already be initialized or initializing via initGame.");
+            // If buttons ever get stuck disabled, we might need to explicitly enable them here too,
+            // but initGame() being called (even if by restart) should handle it.
         }
     }
 
@@ -216,9 +222,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleRedeemCode() { if(!redeemCodeInput||!redeemStatusMessage)return; const eC=redeemCodeInput.value.trim().toLowerCase(); redeemCodeInput.value=''; if(redeemCodes[eC]){const cE=redeemCodes[eC];const succ=cE.action();if(succ){playSound(sounds.purchase);redeemStatusMessage.textContent=cE.description||"Code redeemed!";redeemStatusMessage.className='success';}else{redeemStatusMessage.textContent="Code applied, no new changes.";redeemStatusMessage.className='success';}}else{redeemStatusMessage.textContent="Invalid code.";redeemStatusMessage.className='error';} redeemStatusMessage.style.display='block'; setTimeout(()=>{if(redeemStatusMessage)redeemStatusMessage.style.display='none';},4000);}
 
     function initGame() {
-        if (gameState !== 'LOADING') loadGameData();
+        if (gameState !== 'LOADING' && !initialAssetsHaveLoaded) { // Only load game data if not already loaded via asset manager
+             loadGameData();
+        }
+        // This function will be called by assetLoadManager when assets are ready,
+        // or by restart button.
+        // Reset game state variables for a new game session
         rocket = null; obstacles = []; powerUps = []; particles = [];
         score = 0; frame = 0; gameSpeed = OBSTACLE_SPEED_INITIAL;
+        canSpawnEmergencyBeans = true; // Reset for new game
+        emergencyBeansCooldownTimer = 0; // Reset for new game
+        
         if(startScreen)startScreen.style.display='flex';
         if(gameOverScreen)gameOverScreen.style.display='none';
         if(shopScreen)shopScreen.style.display='none';
@@ -231,10 +245,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         updateUI(null);
         if(ctx)ctx.clearRect(0,0,GAME_WIDTH,GAME_HEIGHT);
-        isStartScreenLoopRunning=false;
+        isStartScreenLoopRunning=false; 
         if(gameState==='START' && allAssetsReady){
             const gC=getCurrentGameCharacter();
-            if(gC && gC.isReady){
+            if(gC && gC.isReady){ // Check if current character image is ready for animation
                 isStartScreenLoopRunning=true;
                 startScreenAnimationLoop();
             }
@@ -250,7 +264,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if(startScreen)startScreen.style.display='none';
         if(shopScreen)shopScreen.style.display='none';
         if(gameOverScreen)gameOverScreen.style.display='none';
-        rocket=new Rocket(); obstacles=[]; powerUps=[]; particles=[];
+        rocket=new Rocket(); // Creates new rocket with fresh fuel, etc.
+        // obstacles, powerUps, particles are already reset in initGame if called by restart,
+        // or are fresh here if initGame was called by asset manager.
+        // For robustness, ensure they are clear if startGame can be called without initGame prior.
+        obstacles=[]; powerUps=[]; particles=[];
         score=0; frame=0; gameSpeed=OBSTACLE_SPEED_INITIAL;
         canSpawnEmergencyBeans=true; emergencyBeansCooldownTimer=0;
         updateUI(rocket);
@@ -332,9 +350,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if(redeemCodeInput){redeemCodeInput.addEventListener('keypress',(e)=>{if(e.key==='Enter'){handleRedeemCode();}});}
     window.addEventListener('keydown',handleInput); if(canvas){canvas.addEventListener('mousedown',handleInput);canvas.addEventListener('touchstart',handleInput,{passive:false});}
 
-    loadGameData();
+    loadGameData(); // Load saved data first
+    // Disable buttons initially. assetLoadManager will call initGame, which enables them when assets are ready.
     if(startButton)startButton.disabled=true;
     if(shopButton)shopButton.disabled=true;
     if(redeemCodeButton)redeemCodeButton.disabled=true;
-    // assetLoadManager will call initGame() when all assets are loaded/attempted.
+    // The asset loading process will call initGame() when done.
 });
