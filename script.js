@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.height = GAME_HEIGHT;
 
     let rocket, obstacles, powerUps, particles;
-    let score = 0, highScore = 0, frame = 0, gameSpeed = 2.0;
+    let score = 0, highScore = 0, frame = 0, gameSpeed; // gameSpeed will be set in init/start
     let gameState = 'LOADING';
     let coins = 0;
     let initialAssetsHaveLoaded = false;
@@ -71,13 +71,39 @@ document.addEventListener('DOMContentLoaded', () => {
     let assetsToLoad = charactersData.length + 3 + 1 + 1 + 1 + 1;
     let assetsLoaded = 0;
 
+    // --- GAMEPLAY CONSTANTS ---
+    const ROCKET_WIDTH = 90; const ROCKET_HEIGHT = 130; const GRAVITY = 0.28; const FLAP_STRENGTH = -7.5;
+    const MAX_FUEL = 100; const FUEL_CONSUMPTION = 2.5; const FUEL_REGEN_RATE = 0;
+    const OBSTACLE_GAP = 260 + (ROCKET_HEIGHT - 95); const OBSTACLE_SPACING = 420; // Horizontal spacing for generation
+    const MIN_OBSTACLE_SEGMENT_HEIGHT = 40;
+    const OBSTACLE_VERTICAL_MOVEMENT_MAX_OFFSET = 60; const OBSTACLE_VERTICAL_SPEED = 0.45;
+    const OBSTACLE_TYPES = {
+        beaker:    { img: beakerObstacleImg,    visualWidth: 120, effectiveWidth: 40,  hitboxInsetX: 15, hitboxInsetYGapEdge: 30 },
+        ruler:     { img: rulerObstacleImg,     visualWidth: 60,  effectiveWidth: 30,  hitboxInsetX: 5,  hitboxInsetYGapEdge: 5  },
+        bookstack: { img: bookstackObstacleImg, visualWidth: 150, effectiveWidth: 120, hitboxInsetX: 25, hitboxInsetYGapEdge: 50 }
+    };
+    const SHIELD_POWERUP_SIZE = 70;
+    const FUEL_POWERUP_SIZE = 100;
+    const POWERUP_SPAWN_CHANCE = 0.011; const SHIELD_DURATION = 540;
+    const LOW_FUEL_THRESHOLD_PERCENT = 25; let canSpawnEmergencyBeans = true;
+    const EMERGENCY_BEANS_COOLDOWN_FRAMES = 180; let emergencyBeansCooldownTimer = 0;
+
+    // Speed and Difficulty Constants
+    const OBSTACLE_SPEED_INITIAL = 2.0;
+    const SPEED_INCREMENT = 0.05;
+    const SPEED_INCREMENT_OBSTACLE_COUNT = 10;
+    const MAX_SPEED_OBSTACLE_THRESHOLD = 100;
+    const MAX_SPEED_MULTIPLIER = 1.5;
+    const MAX_GAME_SPEED = OBSTACLE_SPEED_INITIAL * MAX_SPEED_MULTIPLIER;
+    const INITIAL_OBSTACLE_X_POSITION_FACTOR = 0.65;
+
+
     function getCharacterById(id) { return charactersData.find(char => char.id === id) || charactersData[0]; }
     function getCurrentGameCharacter() { return getCharacterById(currentSelectedCharacterId); }
 
     function assetLoadManager(assetName = "Generic asset") {
         assetsLoaded++;
         console.log(`${assetName} loaded. Assets: ${assetsLoaded}/${assetsToLoad} (Initial load flag: ${initialAssetsHaveLoaded})`);
-
         if (assetsLoaded >= assetsToLoad && !initialAssetsHaveLoaded) {
             initialAssetsHaveLoaded = true; 
             console.log("All critical assets successfully loaded for the first time. Initializing game.");
@@ -116,21 +142,6 @@ document.addEventListener('DOMContentLoaded', () => {
     sounds.purchase.src = 'assets/sounds/purchase.wav';
     Object.values(sounds).forEach(sound => { if (sound.src) { sound.load(); sound.oncanplaythrough = () => console.log(`${sound.src.split('/').pop()} ready`); sound.onerror = (e) => console.error(`Sound Error: ${sound.src}`, e); }});
 
-    const ROCKET_WIDTH = 90; const ROCKET_HEIGHT = 130; const GRAVITY = 0.28; const FLAP_STRENGTH = -7.5;
-    const MAX_FUEL = 100; const FUEL_CONSUMPTION = 2.5; const FUEL_REGEN_RATE = 0;
-    const OBSTACLE_GAP = 260 + (ROCKET_HEIGHT - 95); const OBSTACLE_SPACING = 420;
-    const OBSTACLE_SPEED_INITIAL = 2.0; const MIN_OBSTACLE_SEGMENT_HEIGHT = 40;
-    const OBSTACLE_VERTICAL_MOVEMENT_MAX_OFFSET = 60; const OBSTACLE_VERTICAL_SPEED = 0.45;
-    const OBSTACLE_TYPES = {
-        beaker:    { img: beakerObstacleImg,    visualWidth: 120, effectiveWidth: 40,  hitboxInsetX: 15, hitboxInsetYGapEdge: 30 },
-        ruler:     { img: rulerObstacleImg,     visualWidth: 60,  effectiveWidth: 30,  hitboxInsetX: 5,  hitboxInsetYGapEdge: 5  },
-        bookstack: { img: bookstackObstacleImg, visualWidth: 150, effectiveWidth: 120, hitboxInsetX: 25, hitboxInsetYGapEdge: 50 }
-    };
-    const SHIELD_POWERUP_SIZE = 70;
-    const FUEL_POWERUP_SIZE = 100;
-    const POWERUP_SPAWN_CHANCE = 0.011; const SHIELD_DURATION = 540;
-    const LOW_FUEL_THRESHOLD_PERCENT = 25; let canSpawnEmergencyBeans = true;
-    const EMERGENCY_BEANS_COOLDOWN_FRAMES = 180; let emergencyBeansCooldownTimer = 0;
 
     class Rocket {
         constructor() { this.x = GAME_WIDTH / 6; this.y = GAME_HEIGHT / 2 - ROCKET_HEIGHT / 2; this.width = ROCKET_WIDTH; this.height = ROCKET_HEIGHT; this.velocityY = 0; this.fuel = MAX_FUEL; this.shieldActive = false; this.shieldTimer = 0; this.character = getCurrentGameCharacter(); }
@@ -139,41 +150,16 @@ document.addEventListener('DOMContentLoaded', () => {
         draw() {
             const charImg = this.character.imageObj;
             if (this.character.isReady && charImg.complete && charImg.naturalWidth !== 0 && charImg.naturalHeight !== 0) {
-                const boxW = this.width;
-                const boxH = this.height;
-                const imgW = charImg.naturalWidth;
-                const imgH = charImg.naturalHeight;
-
-                const boxAspectRatio = boxW / boxH;
-                const imgAspectRatio = imgW / imgH;
-
+                const boxW = this.width; const boxH = this.height;
+                const imgW = charImg.naturalWidth; const imgH = charImg.naturalHeight;
+                const boxAspectRatio = boxW / boxH; const imgAspectRatio = imgW / imgH;
                 let drawWidth, drawHeight;
-
-                if (imgAspectRatio > boxAspectRatio) {
-                    drawWidth = boxW;
-                    drawHeight = drawWidth / imgAspectRatio;
-                } else {
-                    drawHeight = boxH;
-                    drawWidth = drawHeight * imgAspectRatio;
-                }
-
-                const drawX = this.x + (boxW - drawWidth) / 2;
-                const drawY = this.y + (boxH - drawHeight) / 2;
-
+                if (imgAspectRatio > boxAspectRatio) { drawWidth = boxW; drawHeight = drawWidth / imgAspectRatio; } 
+                else { drawHeight = boxH; drawWidth = drawHeight * imgAspectRatio; }
+                const drawX = this.x + (boxW - drawWidth) / 2; const drawY = this.y + (boxH - drawHeight) / 2;
                 ctx.drawImage(charImg, drawX, drawY, drawWidth, drawHeight);
-            } else {
-                ctx.fillStyle = 'purple';
-                ctx.fillRect(this.x, this.y, this.width, this.height);
-            }
-
-            if (this.shieldActive) {
-                ctx.strokeStyle = 'rgba(0, 255, 255, 0.8)';
-                ctx.lineWidth = 5;
-                ctx.beginPath();
-                const r = Math.max(this.width, this.height) * 0.8;
-                ctx.arc(this.x + this.width / 2, this.y + this.height / 2, r, 0, Math.PI * 2);
-                ctx.stroke();
-            }
+            } else { ctx.fillStyle = 'purple'; ctx.fillRect(this.x, this.y, this.width, this.height); }
+            if (this.shieldActive) { ctx.strokeStyle = 'rgba(0, 255, 255, 0.8)'; ctx.lineWidth = 5; ctx.beginPath(); const r = Math.max(this.width, this.height) * 0.8; ctx.arc(this.x + this.width / 2, this.y + this.height / 2, r, 0, Math.PI * 2); ctx.stroke(); }
         }
     }
     class Obstacle {
@@ -183,54 +169,16 @@ document.addEventListener('DOMContentLoaded', () => {
         draw() { if (!this.image || !this.image.isReady) return; const dX = this.x - (this.visualWidth - this.effectiveWidth) / 2; if (this.topPart.height > 0) { ctx.save(); ctx.translate(dX, this.topPart.y + this.topPart.height); ctx.scale(1, -1); ctx.drawImage(this.image, 0, 0, this.visualWidth, this.topPart.height); ctx.restore(); } if (this.bottomPart.height > 0) { ctx.drawImage(this.image, dX, this.bottomPart.y, this.visualWidth, this.bottomPart.height); } }
     }
     class PowerUp {
-        constructor(x, y, type) {
-            this.x = x;
-            this.y = y;
-            this.type = type;
-            if (this.type === 'shield') {
-                this.size = SHIELD_POWERUP_SIZE;
-            } else if (this.type === 'fuel') {
-                this.size = FUEL_POWERUP_SIZE;
-            } else {
-                this.size = 100;
-            }
-            this.collected = false;
-        }
+        constructor(x, y, type) { this.x = x; this.y = y; this.type = type; if (this.type === 'shield') { this.size = SHIELD_POWERUP_SIZE; } else if (this.type === 'fuel') { this.size = FUEL_POWERUP_SIZE; } else { this.size = 100; } this.collected = false; }
         update() { this.x -= gameSpeed; }
         draw() {
             if (this.collected) return;
             if (this.type === 'shield') {
-                if (shieldPowerUpImg.isReady && shieldPowerUpImg.complete && shieldPowerUpImg.naturalWidth > 0) {
-                    ctx.drawImage(shieldPowerUpImg, this.x, this.y, this.size, this.size);
-                } else {
-                    const cX = this.x + this.size / 2;
-                    const cY = this.y + this.size / 2;
-                    ctx.beginPath();
-                    ctx.arc(cX, cY, this.size / 2, 0, Math.PI * 2);
-                    ctx.fillStyle = 'rgba(0, 180, 200, 0.7)';
-                    ctx.fill();
-                    ctx.fillStyle = 'white';
-                    ctx.textAlign='center';
-                    ctx.textBaseline='middle';
-                    ctx.font = `bold ${this.size*0.6}px Arial`;
-                    ctx.fillText('S?', cX, cY);
-                }
+                if (shieldPowerUpImg.isReady && shieldPowerUpImg.complete && shieldPowerUpImg.naturalWidth > 0) { ctx.drawImage(shieldPowerUpImg, this.x, this.y, this.size, this.size); } 
+                else { const cX = this.x + this.size / 2; const cY = this.y + this.size / 2; ctx.beginPath(); ctx.arc(cX, cY, this.size / 2, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0, 180, 200, 0.7)'; ctx.fill(); ctx.fillStyle = 'white'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font = `bold ${this.size*0.6}px Arial`; ctx.fillText('S?', cX, cY); }
             } else if (this.type === 'fuel') {
-                if (fuelPowerUpImg.isReady && fuelPowerUpImg.complete && fuelPowerUpImg.naturalWidth > 0) {
-                    ctx.drawImage(fuelPowerUpImg, this.x, this.y, this.size, this.size);
-                } else {
-                    const cX = this.x + this.size / 2;
-                    const cY = this.y + this.size / 2;
-                    ctx.beginPath();
-                    ctx.arc(cX, cY, this.size / 2, 0, Math.PI * 2);
-                    ctx.fillStyle = 'rgba(255,190,0,0.7)';
-                    ctx.fill();
-                    ctx.fillStyle = 'black';
-                    ctx.textAlign='center';
-                    ctx.textBaseline='middle';
-                    ctx.font = `bold ${this.size*0.6}px Arial`;
-                    ctx.fillText('F?', cX, cY);
-                }
+                if (fuelPowerUpImg.isReady && fuelPowerUpImg.complete && fuelPowerUpImg.naturalWidth > 0) { ctx.drawImage(fuelPowerUpImg, this.x, this.y, this.size, this.size); } 
+                else { const cX = this.x + this.size / 2; const cY = this.y + this.size / 2; ctx.beginPath(); ctx.arc(cX, cY, this.size / 2, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,190,0,0.7)'; ctx.fill(); ctx.fillStyle = 'black'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font = `bold ${this.size*0.6}px Arial`; ctx.fillText('F?', cX, cY); }
             }
         }
         applyEffect(r) { playSound(sounds.powerup); if (this.type === 'shield') { r.shieldActive = true; r.shieldTimer = SHIELD_DURATION; } else if (this.type === 'fuel') { r.fuel = MAX_FUEL; } this.collected = true; for (let i=0; i<20; i++) { particles.push(new Particle(this.x+this.size/2, this.y+this.size/2, 'collect'));}}
@@ -249,38 +197,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const gC = getCurrentGameCharacter();
         if (!gC || !gC.isReady || !ctx) return;
         const charImg = gC.imageObj;
-
-        const scaleFactor = 2.8;
-        const boxW_target = ROCKET_WIDTH * scaleFactor;
-        const boxH_target = ROCKET_HEIGHT * scaleFactor;
-
-        const boxX_corner = GAME_WIDTH * 0.80 - boxW_target / 2;
-        const boxY_corner = GAME_HEIGHT / 2 - boxH_target / 2 + bobOffset;
-
+        const scaleFactor = 2.8; const boxW_target = ROCKET_WIDTH * scaleFactor; const boxH_target = ROCKET_HEIGHT * scaleFactor;
+        const boxX_corner = GAME_WIDTH * 0.80 - boxW_target / 2; const boxY_corner = GAME_HEIGHT / 2 - boxH_target / 2 + bobOffset;
         if (charImg.complete && charImg.naturalWidth !== 0 && charImg.naturalHeight !== 0) {
-            const imgW = charImg.naturalWidth;
-            const imgH = charImg.naturalHeight;
-            const boxAspectRatio = boxW_target / boxH_target;
-            const imgAspectRatio = imgW / imgH;
-
+            const imgW = charImg.naturalWidth; const imgH = charImg.naturalHeight;
+            const boxAspectRatio = boxW_target / boxH_target; const imgAspectRatio = imgW / imgH;
             let drawWidth, drawHeight;
-
-            if (imgAspectRatio > boxAspectRatio) {
-                drawWidth = boxW_target;
-                drawHeight = drawWidth / imgAspectRatio;
-            } else {
-                drawHeight = boxH_target;
-                drawWidth = drawHeight * imgAspectRatio;
-            }
-            
-            const drawX = boxX_corner + (boxW_target - drawWidth) / 2;
-            const drawY = boxY_corner + (boxH_target - drawHeight) / 2;
-            
+            if (imgAspectRatio > boxAspectRatio) { drawWidth = boxW_target; drawHeight = drawWidth / imgAspectRatio; } 
+            else { drawHeight = boxH_target; drawWidth = drawHeight * imgAspectRatio; }
+            const drawX = boxX_corner + (boxW_target - drawWidth) / 2; const drawY = boxY_corner + (boxH_target - drawHeight) / 2;
             ctx.drawImage(charImg, drawX, drawY, drawWidth, drawHeight);
-        } else {
-            ctx.fillStyle = 'grey';
-            ctx.fillRect(boxX_corner, boxY_corner, boxW_target, boxH_target);
-        }
+        } else { ctx.fillStyle = 'grey'; ctx.fillRect(boxX_corner, boxY_corner, boxW_target, boxH_target); }
     }
 
     function startScreenAnimationLoop() { if (gameState !== 'START' || !isStartScreenLoopRunning || (startScreen && startScreen.style.display === 'none') ) { isStartScreenLoopRunning = false; return; } if(ctx){ctx.clearRect(0,0,GAME_WIDTH,GAME_HEIGHT); drawBackground();} startScreenAnimFrame++; const bO = Math.sin(startScreenAnimFrame*startScreenCharBobSpeed)*startScreenCharYOffsetMax; drawStartScreenCharacter(bO); requestAnimationFrame(startScreenAnimationLoop); }
@@ -297,36 +224,25 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleRedeemCode() { if(!redeemCodeInput||!redeemStatusMessage)return; const eC=redeemCodeInput.value.trim().toLowerCase(); redeemCodeInput.value=''; if(redeemCodes[eC]){const cE=redeemCodes[eC];const succ=cE.action();if(succ){playSound(sounds.purchase);redeemStatusMessage.textContent=cE.description||"Code redeemed!";redeemStatusMessage.className='success';}else{redeemStatusMessage.textContent="Code applied, no new changes.";redeemStatusMessage.className='success';}}else{redeemStatusMessage.textContent="Invalid code.";redeemStatusMessage.className='error';} redeemStatusMessage.style.display='block'; setTimeout(()=>{if(redeemStatusMessage)redeemStatusMessage.style.display='none';},4000);}
 
     function initGame() {
-        if (gameState !== 'LOADING' && !initialAssetsHaveLoaded) {
-             loadGameData();
-        }
+        if (gameState !== 'LOADING' && !initialAssetsHaveLoaded) { loadGameData(); }
         rocket = null; obstacles = []; powerUps = []; particles = [];
-        score = 0; frame = 0; gameSpeed = OBSTACLE_SPEED_INITIAL;
-        canSpawnEmergencyBeans = true; 
-        emergencyBeansCooldownTimer = 0; 
-        
+        score = 0; frame = 0; gameSpeed = OBSTACLE_SPEED_INITIAL; // Reset game speed here
+        canSpawnEmergencyBeans = true; emergencyBeansCooldownTimer = 0; 
         if(startScreen)startScreen.style.display='flex';
         if(gameOverScreen)gameOverScreen.style.display='none';
         if(shopScreen)shopScreen.style.display='none';
         if(redeemStatusMessage)redeemStatusMessage.style.display='none';
-
         const allAssetsReady = assetsLoaded >= assetsToLoad;
         if(startButton)startButton.disabled = !allAssetsReady;
         if(shopButton)shopButton.disabled = !allAssetsReady;
         if(redeemCodeButton)redeemCodeButton.disabled = !allAssetsReady;
-        
         updateUI(null);
         if(ctx)ctx.clearRect(0,0,GAME_WIDTH,GAME_HEIGHT);
         isStartScreenLoopRunning=false; 
         if(gameState==='START' && allAssetsReady){
             const gC=getCurrentGameCharacter();
-            if(gC && gC.isReady){
-                isStartScreenLoopRunning=true;
-                startScreenAnimationLoop();
-            }
-            if(backgroundMusic.isReady && backgroundMusic.paused){
-                backgroundMusic.play().catch(e=>console.warn("BG Music autoplay fail init.",e));
-            }
+            if(gC && gC.isReady){ isStartScreenLoopRunning=true; startScreenAnimationLoop(); }
+            if(backgroundMusic.isReady && backgroundMusic.paused){ backgroundMusic.play().catch(e=>console.warn("BG Music autoplay fail init.",e)); }
         }
     }
     function startGame() {
@@ -338,12 +254,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if(gameOverScreen)gameOverScreen.style.display='none';
         rocket=new Rocket(); 
         obstacles=[]; powerUps=[]; particles=[];
-        score=0; frame=0; gameSpeed=OBSTACLE_SPEED_INITIAL;
+        score=0; frame=0; gameSpeed = OBSTACLE_SPEED_INITIAL; // Crucial: Reset gameSpeed for new game
         canSpawnEmergencyBeans=true; emergencyBeansCooldownTimer=0;
+
+        const firstObstacleX = GAME_WIDTH * INITIAL_OBSTACLE_X_POSITION_FACTOR;
+        const oTK = Object.keys(OBSTACLE_TYPES);
+        const rT = oTK[Math.floor(Math.random() * oTK.length)];
+        const mGC = OBSTACLE_GAP / 2 + MIN_OBSTACLE_SEGMENT_HEIGHT + 20;
+        const xGC = GAME_HEIGHT - (OBSTACLE_GAP / 2 + MIN_OBSTACLE_SEGMENT_HEIGHT + 20);
+        const range = xGC - mGC;
+        let iGY = (range > 0) ? (Math.random() * range + mGC) : (GAME_HEIGHT / 2);
+        const mV = Math.random() < 0.4;
+        obstacles.push(new Obstacle(firstObstacleX, iGY, mV, rT));
+
         updateUI(rocket);
-        if(backgroundMusic.isReady && backgroundMusic.paused){
-            backgroundMusic.play().catch(e=>console.error("BG music play err:",e));
-        }
+        if(backgroundMusic.isReady && backgroundMusic.paused){ backgroundMusic.play().catch(e=>console.error("BG music play err:",e));}
         gameLoop();
     }
     function gameOver() {
@@ -360,15 +285,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function drawBackground() { if(!ctx)return; if(backgroundImg.isReady && backgroundImg.complete && backgroundImg.naturalWidth > 0){ ctx.drawImage(backgroundImg, backgroundX, 0, backgroundImg.width, GAME_HEIGHT); if (backgroundX < 0) { ctx.drawImage(backgroundImg, backgroundX + backgroundImg.width, 0, backgroundImg.width, GAME_HEIGHT); } } else { ctx.fillStyle = '#87CEEB'; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT); }}
-    function handleInput(e) {
-        if (e.code === 'Space' || e.code === 'KeyW' || e.code === 'ArrowUp' || e.type === 'mousedown' || e.type === 'touchstart') {
-            e.preventDefault();
-            if (gameState === 'PLAYING' && rocket) {
-                rocket.flap();
-            }
+    function handleInput(e) { if (e.code === 'Space' || e.code === 'KeyW' || e.code === 'ArrowUp' || e.type === 'mousedown' || e.type === 'touchstart') { e.preventDefault(); if (gameState === 'PLAYING' && rocket) { rocket.flap(); }}}
+    
+    function generateObstacles() { 
+        // Only generate if there are existing obstacles OR if the first special obstacle is far enough.
+        // This prevents immediate double-spawning if OBSTACLE_SPACING is small.
+        if (obstacles.length === 0 && frame > 5) { // Add a small delay for the very first auto-spawn if no initial obstacle was added
+             // This case should ideally not be hit often if startGame adds the first one.
+        } else if (obstacles.length > 0 && frame % Math.floor(OBSTACLE_SPACING / gameSpeed) === 0) {
+            // Standard generation
+        } else {
+            return; // Don't generate yet
         }
+
+        const oTK=Object.keys(OBSTACLE_TYPES);const rT=oTK[Math.floor(Math.random()*oTK.length)];
+        const mGC=OBSTACLE_GAP/2+MIN_OBSTACLE_SEGMENT_HEIGHT+20;
+        const xGC=GAME_HEIGHT-(OBSTACLE_GAP/2+MIN_OBSTACLE_SEGMENT_HEIGHT+20);
+        const range=xGC-mGC;let iGY=(range>0)?(Math.random()*range+mGC):(GAME_HEIGHT/2);
+        const mV=Math.random()<0.4;
+        obstacles.push(new Obstacle(GAME_WIDTH, iGY, mV, rT)); // Standard spawn at GAME_WIDTH
+        obstacles=obstacles.filter(o=>o.x+o.visualWidth>0); // This filter is good, keep it
     }
-    function generateObstacles() { if(frame%Math.floor(OBSTACLE_SPACING/gameSpeed)===0){const oTK=Object.keys(OBSTACLE_TYPES);const rT=oTK[Math.floor(Math.random()*oTK.length)];const mGC=OBSTACLE_GAP/2+MIN_OBSTACLE_SEGMENT_HEIGHT+20;const xGC=GAME_HEIGHT-(OBSTACLE_GAP/2+MIN_OBSTACLE_SEGMENT_HEIGHT+20);const range=xGC-mGC;let iGY=(range>0)?(Math.random()*range+mGC):(GAME_HEIGHT/2);const mV=Math.random()<0.4;obstacles.push(new Obstacle(GAME_WIDTH,iGY,mV,rT));} obstacles=obstacles.filter(o=>o.x+o.visualWidth>0);}
     
     function generatePowerUps() {
         if (Math.random() < POWERUP_SPAWN_CHANCE && powerUps.length < 3) {
@@ -400,13 +337,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 emergencyBeansCooldownTimer = EMERGENCY_BEANS_COOLDOWN_FRAMES;
             }
         }
-        if (emergencyBeansCooldownTimer > 0) {
-            emergencyBeansCooldownTimer--;
-            if (emergencyBeansCooldownTimer <= 0) canSpawnEmergencyBeans = true;
-        }
+        if (emergencyBeansCooldownTimer > 0) { emergencyBeansCooldownTimer--; if (emergencyBeansCooldownTimer <= 0) canSpawnEmergencyBeans = true; }
     }
 
-    function checkCollisions() { if(!rocket||gameState!=='PLAYING')return; if(rocket.y+rocket.height>=GAME_HEIGHT){rocket.y=GAME_HEIGHT-rocket.height;rocket.velocityY=0;if(!rocket.shieldActive){gameOver();return;}else{rocket.velocityY=FLAP_STRENGTH*0.3;playSound(sounds.hit);}} for(let o of obstacles){const rR={x:rocket.x,y:rocket.y,width:rocket.width,height:rocket.height};const oCX=o.x+o.hitboxInsetX;const oCW=o.effectiveWidth-2*o.hitboxInsetX;const tPR={x:oCX,y:o.topPart.y,width:oCW,height:o.topPart.height-o.hitboxInsetYGapEdge};if(tPR.height<0)tPR.height=0;if(!rocket.shieldActive&&rR.x<tPR.x+tPR.width&&rR.x+rR.width>tPR.x&&rR.y<tPR.y+tPR.height&&rR.y+rR.height>tPR.y){gameOver();return;}const bPR={x:oCX,y:o.bottomPart.y+o.hitboxInsetYGapEdge,width:oCW,height:o.bottomPart.height-o.hitboxInsetYGapEdge};if(bPR.height<0)bPR.height=0;if(!rocket.shieldActive&&rR.x<bPR.x+bPR.width&&rR.x+rR.width>bPR.x&&rR.y<bPR.y+bPR.height&&rR.y+rR.height>bPR.y){gameOver();return;}if(!o.passed&&o.x+o.effectiveWidth<rocket.x){o.passed=true;score++;playSound(sounds.score);gameSpeed+=0.02;}} for(let pU of powerUps){const rocketRect={x:rocket.x,y:rocket.y,width:rocket.width,height:rocket.height}; if(!pU.collected&&rocketRect.x<pU.x+pU.size&&rocketRect.x+rocketRect.width>pU.x&&rocketRect.y<pU.y+pU.size&&rocketRect.y+rocketRect.height>pU.y)pU.applyEffect(rocket);}}
+    function checkCollisions() { 
+        if(!rocket||gameState!=='PLAYING')return; 
+        if(rocket.y+rocket.height>=GAME_HEIGHT){rocket.y=GAME_HEIGHT-rocket.height;rocket.velocityY=0;if(!rocket.shieldActive){gameOver();return;}else{rocket.velocityY=FLAP_STRENGTH*0.3;playSound(sounds.hit);}} 
+        for(let o of obstacles){
+            const rR={x:rocket.x,y:rocket.y,width:rocket.width,height:rocket.height};
+            const oCX=o.x+o.hitboxInsetX;const oCW=o.effectiveWidth-2*o.hitboxInsetX;
+            const tPR={x:oCX,y:o.topPart.y,width:oCW,height:o.topPart.height-o.hitboxInsetYGapEdge};
+            if(tPR.height<0)tPR.height=0;
+            if(!rocket.shieldActive&&rR.x<tPR.x+tPR.width&&rR.x+rR.width>tPR.x&&rR.y<tPR.y+tPR.height&&rR.y+rR.height>tPR.y){gameOver();return;}
+            const bPR={x:oCX,y:o.bottomPart.y+o.hitboxInsetYGapEdge,width:oCW,height:o.bottomPart.height-o.hitboxInsetYGapEdge};
+            if(bPR.height<0)bPR.height=0;
+            if(!rocket.shieldActive&&rR.x<bPR.x+bPR.width&&rR.x+rR.width>bPR.x&&rR.y<bPR.y+bPR.height&&rR.y+rR.height>bPR.y){gameOver();return;}
+            
+            if(!o.passed&&o.x+o.effectiveWidth<rocket.x){
+                o.passed=true;score++;playSound(sounds.score);
+                if (score > 0 && score % SPEED_INCREMENT_OBSTACLE_COUNT === 0 && score <= MAX_SPEED_OBSTACLE_THRESHOLD) {
+                    if (gameSpeed < MAX_GAME_SPEED) {
+                        gameSpeed += SPEED_INCREMENT;
+                        gameSpeed = Math.min(gameSpeed, MAX_GAME_SPEED); 
+                        // console.log(`Score: ${score}, New gameSpeed: ${gameSpeed.toFixed(3)}`); // For debugging
+                    }
+                }
+            }
+        } 
+        for(let pU of powerUps){const rocketRect={x:rocket.x,y:rocket.y,width:rocket.width,height:rocket.height}; if(!pU.collected&&rocketRect.x<pU.x+pU.size&&rocketRect.x+rocketRect.width>pU.x&&rocketRect.y<pU.y+pU.size&&rocketRect.y+rocketRect.height>pU.y)pU.applyEffect(rocket);}}
+    
     function updateGameObjects() { if(gameState!=='PLAYING')return; if(rocket)rocket.update(); obstacles.forEach(o=>o.update()); powerUps.forEach(pU=>pU.update()); particles=particles.filter(p=>p.life>0); particles.forEach(p=>p.update()); if(backgroundImg.isReady){backgroundX-=gameSpeed*BACKGROUND_SCROLL_SPEED_FACTOR;if(backgroundX<=-backgroundImg.width){backgroundX+=backgroundImg.width;}}}
     function drawGameObjects() { if(!ctx)return; ctx.clearRect(0,0,GAME_WIDTH,GAME_HEIGHT); drawBackground(); obstacles.forEach(o=>o.draw()); powerUps.forEach(pU=>pU.draw()); if(gameState==='PLAYING'&&rocket)rocket.draw(); particles.forEach(p=>p.draw());}
     function gameLoop() { if(gameState!=='PLAYING')return; frame++; generateObstacles(); if(frame%75===0)generatePowerUps(); trySpawnEmergencyBeans(); updateGameObjects(); checkCollisions(); drawGameObjects(); updateUI(rocket); requestAnimationFrame(gameLoop);}
