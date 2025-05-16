@@ -59,13 +59,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const rulerObstacleImg = new Image(); rulerObstacleImg.src = 'assets/tiles/ruler_obstacle.png'; rulerObstacleImg.isReady = false;
     const bookstackObstacleImg = new Image(); bookstackObstacleImg.src = 'assets/tiles/bookstack_obstacle.png'; bookstackObstacleImg.isReady = false;
     const fuelPowerUpImg = new Image(); fuelPowerUpImg.src = 'assets/tiles/beans-removebg-preview.png'; fuelPowerUpImg.isReady = false;
-    const shieldPowerUpImg = new Image(); shieldPowerUpImg.src = 'assets/tiles/your_shield_image.png';
+    const shieldPowerUpImg = new Image(); shieldPowerUpImg.src = 'assets/tiles/your_shield_image.png'; shieldPowerUpImg.isReady = false;
     const backgroundMusic = new Audio(); backgroundMusic.isReady = false;
     const backgroundImg = new Image(); backgroundImg.src = 'assets/tiles/background_sky.png'; backgroundImg.isReady = false;
     let backgroundX = 0;
     const BACKGROUND_SCROLL_SPEED_FACTOR = 0.3;
 
-    let assetsToLoad = charactersData.length + 3 + 1 + 1 + 1;
+        // assetsToLoad: characters + 3 obstacles + fuelImg + shieldImg + music + background
+    let assetsToLoad = charactersData.length + 3 + 1 + 1 + 1 + 1;
     let assetsLoaded = 0;
 
     function getCharacterById(id) { return charactersData.find(char => char.id === id) || charactersData[0]; }
