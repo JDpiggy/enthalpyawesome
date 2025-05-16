@@ -45,11 +45,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- CHARACTER DATA & ASSET PATHS ---
     let charactersData = [
         { id: 'lali_classic', name: 'Lali Classic', imageSrc: 'assets/tiles/lali_classic.png', price: 0, imageObj: new Image(), isReady: false, unlocked: true },
+        { id: 'lali_banana', name: 'Banana Lali', imageSrc: 'assets/tiles/banana_lali.png', price: 100, imageObj: new Image(), isReady: false, unlocked: false }, // <-- NEW CHARACTER
         { id: 'lali_super', name: 'Super Lali', imageSrc: 'assets/tiles/lali_super.png', price: 200, imageObj: new Image(), isReady: false, unlocked: false },
-        { id: 'lali_ninja', name: 'Ninja Lali', imageSrc: 'assets/tiles/lali_ninja.png', price: 500, imageObj: new Image(), isReady: false, unlocked: false },
-        { id: 'lali_robo', name: 'Robo Lali', imageSrc: 'assets/tiles/lali_robo.png', price: 1200, imageObj: new Image(), isReady: false, unlocked: false },
-        { id: 'lali_golden', name: 'Golden Lali', imageSrc: 'assets/tiles/lali_golden.png', price: 3000, imageObj: new Image(), isReady: false, unlocked: false },
-        { id: 'lali_kawaii', name: 'Kawaii Lali', imageSrc: 'assets/tiles/kawaii_lali.png', price: 5000, imageObj: new Image(), isReady: false, unlocked: false } // <-- NEW CHARACTER
+        { id: 'lali_ninja', name: 'Ninja Lali', imageSrc: 'assets/tiles/lali_ninja.png', price: 300, imageObj: new Image(), isReady: false, unlocked: false },     // Price Updated
+        { id: 'lali_robo', name: 'Robo Lali', imageSrc: 'assets/tiles/lali_robo.png', price: 600, imageObj: new Image(), isReady: false, unlocked: false },       // Price Updated
+        { id: 'lali_golden', name: 'Golden Lali', imageSrc: 'assets/tiles/lali_golden.png', price: 1000, imageObj: new Image(), isReady: false, unlocked: false },   // Price Updated
+        { id: 'lali_kawaii', name: 'Kawaii Lali', imageSrc: 'assets/tiles/kawaii_lali.png', price: 1600, imageObj: new Image(), isReady: false, unlocked: false }   // Price Updated
     ];
     let currentSelectedCharacterId = 'lali_classic';
     let shopPreviewCharacterId = 'lali_classic';
@@ -59,15 +60,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const rulerObstacleImg = new Image(); rulerObstacleImg.src = 'assets/tiles/ruler_obstacle.png'; rulerObstacleImg.isReady = false;
     const bookstackObstacleImg = new Image(); bookstackObstacleImg.src = 'assets/tiles/bookstack_obstacle.png'; bookstackObstacleImg.isReady = false;
     const fuelPowerUpImg = new Image(); fuelPowerUpImg.src = 'assets/tiles/beans-removebg-preview.png'; fuelPowerUpImg.isReady = false;
-    const shieldPowerUpImg = new Image(); shieldPowerUpImg.src = 'assets/tiles/your_shield_image.png'; // Ensure this path is correct
-    shieldPowerUpImg.isReady = false; // <-- Initialized
+    const shieldPowerUpImg = new Image(); shieldPowerUpImg.src = 'assets/tiles/your_shield_image.png'; // Ensure this path is correct and image exists
+    shieldPowerUpImg.isReady = false;
     const backgroundMusic = new Audio(); backgroundMusic.isReady = false;
     const backgroundImg = new Image(); backgroundImg.src = 'assets/tiles/background_sky.png'; backgroundImg.isReady = false;
     let backgroundX = 0;
     const BACKGROUND_SCROLL_SPEED_FACTOR = 0.3;
 
     // assetsToLoad: characters + 3 obstacles + fuelImg + shieldImg + music + background
-    let assetsToLoad = charactersData.length + 3 + 1 + 1 + 1 + 1; // <-- UPDATED count
+    let assetsToLoad = charactersData.length + 3 + 1 + 1 + 1 + 1;
     let assetsLoaded = 0;
 
     function getCharacterById(id) { return charactersData.find(char => char.id === id) || charactersData[0]; }
@@ -79,11 +80,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (assetsLoaded >= assetsToLoad) {
             console.log("All critical assets loading attempted.");
             gameState = 'START';
-            initGame(); // initGame will be called once all assets are attempted
+            initGame();
         }
     }
 
-    // Load all character images
     charactersData.forEach(charData => {
         charData.imageObj.src = charData.imageSrc;
         charData.imageObj.onload = () => { charData.isReady = true; assetLoadManager(`Char ${charData.name}`); };
@@ -98,15 +98,12 @@ document.addEventListener('DOMContentLoaded', () => {
     bookstackObstacleImg.onerror = () => { bookstackObstacleImg.isReady = false; console.error("Bookstack Obstacle fail"); assetLoadManager("Bookstack (fail)"); };
     fuelPowerUpImg.onload = () => { fuelPowerUpImg.isReady = true; assetLoadManager("Fuel Image"); };
     fuelPowerUpImg.onerror = () => { fuelPowerUpImg.isReady = false; console.error("Fuel Image fail"); assetLoadManager("Fuel (fail)"); };
-    
-    shieldPowerUpImg.onload = () => { shieldPowerUpImg.isReady = true; assetLoadManager("Shield Image"); }; // <-- Loading logic for shield
+    shieldPowerUpImg.onload = () => { shieldPowerUpImg.isReady = true; assetLoadManager("Shield Image"); };
     shieldPowerUpImg.onerror = () => { shieldPowerUpImg.isReady = false; console.error("Shield Image fail"); assetLoadManager("Shield (fail)"); };
-
     backgroundMusic.src = 'assets/sounds/background_music.mp3'; backgroundMusic.loop = true; backgroundMusic.volume = 0.3;
     backgroundMusic.oncanplaythrough = () => { backgroundMusic.isReady = true; assetLoadManager("Background Music"); };
     backgroundMusic.onerror = () => { backgroundMusic.isReady = false; console.error("BG Music fail"); assetLoadManager("Music (fail)"); };
     try { backgroundMusic.load(); } catch (e) { console.error("Music load() call fail:", e); }
-
     backgroundImg.onload = () => { backgroundImg.isReady = true; assetLoadManager("Background Image"); };
     backgroundImg.onerror = () => { backgroundImg.isReady = false; console.error("Background Image fail"); assetLoadManager("Background Image (fail)"); };
 
@@ -148,20 +145,18 @@ document.addEventListener('DOMContentLoaded', () => {
             this.x = x;
             this.y = y;
             this.type = type;
-            // Set size based on type
             if (this.type === 'shield') {
                 this.size = SHIELD_POWERUP_SIZE;
             } else if (this.type === 'fuel') {
                 this.size = FUEL_POWERUP_SIZE;
             } else {
-                this.size = 100; // A default fallback
+                this.size = 100;
             }
             this.collected = false;
         }
         update() { this.x -= gameSpeed; }
         draw() {
             if (this.collected) return;
-
             if (this.type === 'shield') {
                 if (shieldPowerUpImg.isReady && shieldPowerUpImg.complete && shieldPowerUpImg.naturalWidth > 0) {
                     ctx.drawImage(shieldPowerUpImg, this.x, this.y, this.size, this.size);
@@ -229,7 +224,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if(shopScreen)shopScreen.style.display='none';
         if(redeemStatusMessage)redeemStatusMessage.style.display='none';
 
-        // Disable buttons only if assets are not yet fully loaded
         const allAssetsReady = assetsLoaded >= assetsToLoad;
         if(startButton)startButton.disabled = !allAssetsReady;
         if(shopButton)shopButton.disabled = !allAssetsReady;
@@ -238,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUI(null);
         if(ctx)ctx.clearRect(0,0,GAME_WIDTH,GAME_HEIGHT);
         isStartScreenLoopRunning=false;
-        if(gameState==='START' && allAssetsReady){ // Ensure assets are ready for start screen anim
+        if(gameState==='START' && allAssetsReady){
             const gC=getCurrentGameCharacter();
             if(gC && gC.isReady){
                 isStartScreenLoopRunning=true;
@@ -292,8 +286,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function generatePowerUps() {
         if (Math.random() < POWERUP_SPAWN_CHANCE && powerUps.length < 3) {
             const t = Math.random() < 0.4 ? 'shield' : 'fuel';
-            const currentGeneratedPowerUpSize = (t === 'shield') ? SHIELD_POWERUP_SIZE : FUEL_POWERUP_SIZE; // Corrected
-            const y = Math.random() * (GAME_HEIGHT - currentGeneratedPowerUpSize - 150) + 75; // Corrected
+            const currentGeneratedPowerUpSize = (t === 'shield') ? SHIELD_POWERUP_SIZE : FUEL_POWERUP_SIZE;
+            const y = Math.random() * (GAME_HEIGHT - currentGeneratedPowerUpSize - 150) + 75;
             const x = GAME_WIDTH + Math.random() * 200;
             powerUps.push(new PowerUp(x, y, t));
         }
@@ -306,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!eFPU) {
                 let sX = GAME_WIDTH * 0.8;
                 const nRY = rocket.y + (Math.random() - 0.5) * 100;
-                const cY = Math.max(FUEL_POWERUP_SIZE / 2, Math.min(GAME_HEIGHT - FUEL_POWERUP_SIZE * 1.5, nRY)); // Corrected
+                const cY = Math.max(FUEL_POWERUP_SIZE / 2, Math.min(GAME_HEIGHT - FUEL_POWERUP_SIZE * 1.5, nRY));
                 const nO = obstacles.find(o => o.x + o.effectiveWidth > rocket.x + rocket.width);
                 if (nO) sX = nO.x + nO.effectiveWidth + Math.random() * OBSTACLE_SPACING * 0.3 + 50;
                 else if (obstacles.length > 0 && obstacles[obstacles.length - 1].x + obstacles[obstacles.length - 1].effectiveWidth > 0) {
@@ -338,19 +332,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if(redeemCodeInput){redeemCodeInput.addEventListener('keypress',(e)=>{if(e.key==='Enter'){handleRedeemCode();}});}
     window.addEventListener('keydown',handleInput); if(canvas){canvas.addEventListener('mousedown',handleInput);canvas.addEventListener('touchstart',handleInput,{passive:false});}
 
-    // Initial setup: Load data, then call initGame which now also handles button disabling based on asset load state
     loadGameData();
-    // Buttons are initially disabled until assets are loaded.
-    // initGame will be called by assetLoadManager once assets are ready.
-    // However, we need an initial call to setup button states if assets are already cached or load extremely fast.
-    // Or, more simply, disable them here and let assetLoadManager enable them via initGame.
     if(startButton)startButton.disabled=true;
     if(shopButton)shopButton.disabled=true;
     if(redeemCodeButton)redeemCodeButton.disabled=true;
-
-    // The asset loading process will call initGame() when done.
-    // No explicit initGame() call here needed if asset loading always triggers it.
-    // However, if all assets are somehow loaded before assetLoadManager finishes its first check,
-    // initGame might not be called. To be safe, assetLoadManager calls it.
-    // The initial disabling of buttons is important.
+    // assetLoadManager will call initGame() when all assets are loaded/attempted.
 });
