@@ -58,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rulerObstacleImg = new Image(); rulerObstacleImg.src = 'assets/tiles/ruler_obstacle.png'; rulerObstacleImg.isReady = false;
     const bookstackObstacleImg = new Image(); bookstackObstacleImg.src = 'assets/tiles/bookstack_obstacle.png'; bookstackObstacleImg.isReady = false;
     const fuelPowerUpImg = new Image(); fuelPowerUpImg.src = 'assets/tiles/beans-removebg-preview.png'; fuelPowerUpImg.isReady = false;
+    const shieldPowerUpImg = new Image(); shieldPowerUpImg.src = 'assets/tiles/your_shield_image.png';
     const backgroundMusic = new Audio(); backgroundMusic.isReady = false;
     const backgroundImg = new Image(); backgroundImg.src = 'assets/tiles/background_sky.png'; backgroundImg.isReady = false;
     let backgroundX = 0;
