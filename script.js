@@ -96,11 +96,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const OBSTACLE_SPEED_INITIAL = 2.0; const MIN_OBSTACLE_SEGMENT_HEIGHT = 40;
     const OBSTACLE_VERTICAL_MOVEMENT_MAX_OFFSET = 60; const OBSTACLE_VERTICAL_SPEED = 0.45;
     const OBSTACLE_TYPES = {
-        beaker:    { img: beakerObstacleImg,    visualWidth: 120, effectiveWidth: 90,  hitboxInsetX: 15, hitboxInsetYGapEdge: 10 },
+        beaker:    { img: beakerObstacleImg,    visualWidth: 120, effectiveWidth: 50,  hitboxInsetX: 15, hitboxInsetYGapEdge: 30 },
         ruler:     { img: rulerObstacleImg,     visualWidth: 60,  effectiveWidth: 40,  hitboxInsetX: 5,  hitboxInsetYGapEdge: 5  },
         bookstack: { img: bookstackObstacleImg, visualWidth: 150, effectiveWidth: 120, hitboxInsetX: 15, hitboxInsetYGapEdge: 15 }
     };
-    const POWERUP_SIZE = 100; const POWERUP_SPAWN_CHANCE = 0.011; const SHIELD_DURATION = 540;
+    const SHIELD_POWERUP_SIZE = 70; // Or your desired size for the shield
+    const FUEL_POWERUP_SIZE = 100;    // Or your desired size for the fuel/bean
+    const POWERUP_SPAWN_CHANCE = 0.011; const SHIELD_DURATION = 540;
     const LOW_FUEL_THRESHOLD_PERCENT = 25; let canSpawnEmergencyBeans = true;
     const EMERGENCY_BEANS_COOLDOWN_FRAMES = 180; let emergencyBeansCooldownTimer = 0;
 
