@@ -49,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'lali_ninja', name: 'Ninja Lali', imageSrc: 'assets/tiles/lali_ninja.png', price: 500, imageObj: new Image(), isReady: false, unlocked: false },
          { id: 'lali_robo', name: 'Robo Lali', imageSrc: 'assets/tiles/lali_robo.png', price: 1200, imageObj: new Image(), isReady: false, unlocked: false },
         { id: 'lali_golden', name: 'Golden Lali', imageSrc: 'assets/tiles/lali_golden.png', price: 3000, imageObj: new Image(), isReady: false, unlocked: false },
+        { id: 'lali_kawaii', name: 'Kawaii Lali', imageSrc: 'assets/tiles/kawaii_lali.png', price: 5000, imageObj: new Image(), isReady: false, unlocked: false },
     ];
     let currentSelectedCharacterId = 'lali_classic';
     let shopPreviewCharacterId = 'lali_classic';
