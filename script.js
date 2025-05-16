@@ -97,8 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const OBSTACLE_SPEED_INITIAL = 2.0; const MIN_OBSTACLE_SEGMENT_HEIGHT = 40;
     const OBSTACLE_VERTICAL_MOVEMENT_MAX_OFFSET = 60; const OBSTACLE_VERTICAL_SPEED = 0.45;
     const OBSTACLE_TYPES = {
-        beaker:    { img: beakerObstacleImg,    visualWidth: 120, effectiveWidth: 50,  hitboxInsetX: 15, hitboxInsetYGapEdge: 30 },
-        ruler:     { img: rulerObstacleImg,     visualWidth: 60,  effectiveWidth: 40,  hitboxInsetX: 5,  hitboxInsetYGapEdge: 5  },
+        beaker:    { img: beakerObstacleImg,    visualWidth: 120, effectiveWidth: 40,  hitboxInsetX: 15, hitboxInsetYGapEdge: 30 },
+        ruler:     { img: rulerObstacleImg,     visualWidth: 60,  effectiveWidth: 30,  hitboxInsetX: 5,  hitboxInsetYGapEdge: 5  },
         bookstack: { img: bookstackObstacleImg, visualWidth: 150, effectiveWidth: 120, hitboxInsetX: 25, hitboxInsetYGapEdge: 50 }
     };
     const SHIELD_POWERUP_SIZE = 70; // Or your desired size for the shield
